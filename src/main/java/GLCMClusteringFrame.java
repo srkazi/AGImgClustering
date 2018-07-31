@@ -12,10 +12,12 @@ import net.imglib2.img.ImgFactory;
 import net.imglib2.img.array.ArrayImgFactory;
 import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.img.display.imagej.ImageJFunctions;
+import net.imglib2.ops.parse.token.Int;
 import net.imglib2.type.numeric.integer.ByteType;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
 import org.apache.commons.math3.ml.clustering.CentroidCluster;
 import org.apache.commons.math3.ml.clustering.Cluster;
+import org.apache.commons.math3.ml.distance.EuclideanDistance;
 import org.scijava.app.StatusService;
 import org.scijava.command.CommandService;
 import org.scijava.log.LogService;
@@ -26,6 +28,8 @@ import org.scijava.util.RealRect;
 
 import javax.swing.*;
 import javax.swing.border.EtchedBorder;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -37,6 +41,7 @@ public class GLCMClusteringFrame extends JFrame {
 	final static boolean shouldWeightX = true;
 	final static boolean RIGHT_TO_LEFT = false;
 
+	private int flag= 0;
     private OpService ops;
 	private LogService log;
 	private StatusService status;
@@ -102,6 +107,18 @@ public class GLCMClusteringFrame extends JFrame {
 		*/
 
 		JFormattedTextField formattedTextField= new JFormattedTextField();
+		formattedTextField.setToolTipText("must be >= 1");
+		formattedTextField.setInputVerifier(new InputVerifier() {
+            @Override
+            public boolean verify(JComponent input) {
+                try {
+                    int k= Integer.parseInt(((JFormattedTextField)input).getText());
+                    return k >= 1;
+                } catch ( Exception e ) {
+                    return false ;
+                }
+            }
+        });
 		c= new GridBagConstraints();
 		c.gridx= 0;
 		c.gridy= 0;
@@ -170,14 +187,19 @@ public class GLCMClusteringFrame extends JFrame {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				thread.run( ()-> {
-					int k= 3;
+					int k= 3, numIters, trials;
 					try {
-						k = Integer.parseInt(formattedTextField.getText());
+						k= Integer.parseInt(formattedTextField.getText());
+                        numIters= Integer.parseInt(formattedTextField2.getText());
+                        trials= Integer.parseInt(formattedTextField3.getText());
 					} catch ( NumberFormatException nfe ) {
-						throw nfe;
+						//throw nfe;
+                        k= Utils.DEFAULT_NUMBER_OF_CLUSTERS;
+                        numIters= Utils.DEFAULT_ITERS;
+                        trials= Utils.NUM_TRIALS;
 					}
 					log.info("Read k= "+k);
-					multiKMeansPPClustering(k);
+					multiKMeansPPClustering(k,numIters,trials);
 				});
 			}
 		});
@@ -194,27 +216,27 @@ public class GLCMClusteringFrame extends JFrame {
 		return panel;
 	}
 
-	public void multiKMeansPPClustering( int k ) {
+	public void multiKMeansPPClustering( int k, int numIters, int trials ) {
 	    /*
 		RealRect r= overlayService.getSelectionBounds(display);
 		*/
-		MultiKMeansPlusPlusImageClusterer clusterer= new MultiKMeansPlusPlusImageClusterer(img,k,null);
-		log.info("[Launching Clustering]");
+		MultiKMeansPlusPlusImageClusterer clusterer= new MultiKMeansPlusPlusImageClusterer(flag,img,k, numIters, trials,null);
+		log.info("[Launching Multi-KMeans Clustering]");
 		List<CentroidCluster<AnnotatedPixelWrapper>> list= clusterer.cluster();
 		drawResult(list);
 		//IJ.run("Stack to Images","");
 		//IJ.run("Merge Channels...","");
-		log.info("[DONE Clustering]");
+		log.info("[DONE Multi-KMeans Clustering]");
 	}
 	private void dbscanClustering( int minPts, double eps ) {
-		DBSCANImageClusterer clusterer= new DBSCANImageClusterer(img,eps,minPts,null);
+		DBSCANImageClusterer clusterer= new DBSCANImageClusterer(flag,img,eps,minPts,null);
 		log.info(String.format("[Launching DBSCAN Clustering with eps= %f, minPts= %d]",eps,minPts));
 		List<Cluster<AnnotatedPixelWrapper>> list= clusterer.cluster();
 		log.info("[DONE DBSCAN Clustering]");
 		drawResult(list);
 	}
 	private void fuzzyKMeansClustering( int k, double fuzziness, int numIterations ) {
-		FuzzyKMeansImageClusterer clusterer= new FuzzyKMeansImageClusterer(img,k,fuzziness,null);
+		FuzzyKMeansImageClusterer clusterer= new FuzzyKMeansImageClusterer(flag,img,k,fuzziness, numIterations,null);
 		log.info("[Launching FuzzyKMeans Clustering]");
 		List<CentroidCluster<AnnotatedPixelWrapper>> list= clusterer.cluster();
 		log.info("[DONE FuzzyKMeans Clustering]");
@@ -388,7 +410,7 @@ public class GLCMClusteringFrame extends JFrame {
 		//FIXME: only one item is selected, probably need to read this:
 		// https://java-swing-tips.blogspot.com/2016/07/select-multiple-jcheckbox-in-jcombobox.html
         // https://stackoverflow.com/questions/19766/how-do-i-make-a-list-with-checkboxes-in-java-swing
-		JMenu adjacencyTypeMenu= new JMenu("Adjacency");
+		/*JMenu adjacencyTypeMenu= new JMenu("Adjacency");
 		String []adjacencies= {"Rows","Columns","Main diagonal","Aux diagonal"};
 		ButtonGroup adjacenciesGroup= new ButtonGroup();
 		for ( String x: adjacencies ) {
@@ -397,6 +419,26 @@ public class GLCMClusteringFrame extends JFrame {
 			adjacencyTypeMenu.add(item);
 		}
 		bar.add(adjacencyTypeMenu);
+		*/
+		JMenu featuresMenu= new JMenu("Features");
+		final JList<TextureFeatures> listOfFeatures= new JList<>(TextureFeatures.values());
+		listOfFeatures.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+		listOfFeatures.addListSelectionListener(new ListSelectionListener() {
+            @Override
+            public void valueChanged( ListSelectionEvent e ) {
+                for ( int row= e.getFirstIndex(); row <= e.getLastIndex(); ++row ) {
+                    if ( listOfFeatures.isSelectedIndex(row) ) {
+                        flag|= (1<<row);
+                    }
+                }
+                log.info("The features chosen: ");
+                for ( int i= 0; i < TextureFeatures.values().length; ++i )
+                    if ( 0 != (flag & (1<<i)) )
+                        log.info(TextureFeatures.values()[i]);
+            }
+        });
+		featuresMenu.add(listOfFeatures);
+		bar.add(featuresMenu);
 
 		this.setJMenuBar(bar);
 	}
@@ -500,7 +542,7 @@ public class GLCMClusteringFrame extends JFrame {
 		constraints.anchor= GridBagConstraints.LINE_END;
 		constraints.weightx= 0.7;
 		textField2.setBorder( BorderFactory.createTitledBorder(
-				BorderFactory.createEtchedBorder(EtchedBorder.RAISED, Color.GRAY,Color.DARK_GRAY), "[UNSUPPORTED!!!] #of iterations"
+				BorderFactory.createEtchedBorder(EtchedBorder.RAISED, Color.GRAY,Color.DARK_GRAY), "#of iterations"
 		));
 		panel.add(textField2,constraints);
 
@@ -509,7 +551,7 @@ public class GLCMClusteringFrame extends JFrame {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				thread.run( ()-> {
-					int k= 3, iterations;
+					int k, iterations;
 					double fuzziness;
 					try {
 						k= Integer.parseInt(numberOfClusters.getText());
@@ -521,6 +563,7 @@ public class GLCMClusteringFrame extends JFrame {
 						k= Utils.DEFAULT_NUMBER_OF_CLUSTERS;
 						iterations= Utils.DEFAULT_ITERS;
 					}
+					log.info(String.format("k= %d, fuzziness= %f",k,fuzziness));
 					fuzzyKMeansClustering(k,fuzziness,iterations);
 				});
 			}
