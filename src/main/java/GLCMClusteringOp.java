@@ -22,8 +22,8 @@ import org.scijava.plugin.Parameter;
 import org.scijava.plugin.Plugin;
 import org.scijava.ui.UIService;
 
-@Plugin(type = Op.class, headless = true,
-	menuPath = "Clustering > GLCM Clustering")
+//@Plugin(type = Op.class, headless = true,
+//	menuPath = "Clustering > GLCM Clustering")
 public class GLCMClusteringOp extends AbstractOp {
 
 	@Parameter

@@ -2,11 +2,11 @@ import ij.IJ;
 import ij.ImagePlus;
 import ij.plugin.Duplicator;
 import net.imagej.DatasetService;
+import net.imagej.ImgPlus;
 import net.imagej.display.ImageDisplay;
 import net.imagej.display.OverlayService;
 import net.imagej.ops.OpService;
-import net.imglib2.RandomAccess;
-import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.*;
 import net.imglib2.img.Img;
 import net.imglib2.img.ImgFactory;
 import net.imglib2.img.array.ArrayImgFactory;
@@ -21,6 +21,8 @@ import org.scijava.command.CommandService;
 import org.scijava.log.LogService;
 import org.scijava.thread.ThreadService;
 import org.scijava.ui.UIService;
+import org.scijava.util.IntRect;
+import org.scijava.util.RealRect;
 
 import javax.swing.*;
 import javax.swing.border.EtchedBorder;
@@ -44,7 +46,8 @@ public class GLCMClusteringFrame extends JFrame {
 	private ImageDisplay display;
 	private OverlayService overlayService;
 	private DatasetService datasetService;
-	private RandomAccessibleInterval<ByteType> img;
+	private RandomAccessibleInterval<UnsignedByteType> img;
+	private RandomAccessibleInterval<UnsignedByteType> currentSelection;
 
 	private final JPanel contentPanel= new JPanel();
 	private final JTabbedPane tabbedPane= new JTabbedPane();
@@ -604,6 +607,23 @@ public class GLCMClusteringFrame extends JFrame {
 
 	public void setOverlayService(OverlayService overlayService) {
 		this.overlayService = overlayService;
+		/*
+		RealRect r= overlayService.getSelectionBounds(display);
+		Img<UnsignedByteType> im= ArrayImgs.unsignedBytes((int)(r.height),(int)(r.width),3);
+		RandomAccess<UnsignedByteType> ra = im.randomAccess();
+		RandomAccess<UnsignedByteType> rr = currentSelection.randomAccess();
+		for ( int i= 0, x= (int)r.x; x < (int)(r.x+r.height); ++x, ++i )
+			for ( int j= 0, y= (int)r.y; y < (int)(r.y+r.width); ++y, ++j ) {
+		    	ra.setPosition(0,x);
+				ra.setPosition(1,y);
+				ra.setPosition(2,0);
+				rr.setPosition(0,i);
+				rr.setPosition(1,j);
+				rr.setPosition(2,0);
+				rr.get().set(ra.get());
+			}
+			img= currentSelection;
+			*/
 	}
 
 	public DatasetService getDatasetService() {
@@ -614,11 +634,11 @@ public class GLCMClusteringFrame extends JFrame {
 		this.datasetService = datasetService;
 	}
 
-	public RandomAccessibleInterval<ByteType> getImg() {
+	public RandomAccessibleInterval<UnsignedByteType> getImg() {
 		return img;
 	}
 
-	public void setImg(RandomAccessibleInterval<ByteType> img) {
+	public void setImg(RandomAccessibleInterval<UnsignedByteType> img) {
 		this.img = img;
 	}
 }

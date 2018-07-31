@@ -43,7 +43,7 @@ import org.scijava.util.RealRect;
 public class GLCMClusteringOpSwing implements Command {
 
 	@Parameter
-    private RandomAccessibleInterval<ByteType> img;
+    private RandomAccessibleInterval<UnsignedByteType> img;
 
     @Parameter
 	private DatasetService datasetService;
@@ -99,6 +99,7 @@ public class GLCMClusteringOpSwing implements Command {
 			dialog.setDatasetService(datasetService);
 			dialog.setDisplay(display);
 			dialog.setImg(img);
+			dialog.setOverlayService(overlayService);
 			/**
 			 * enables ROI (i.e. selection)
 			 */

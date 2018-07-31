@@ -10,7 +10,7 @@ public class Utils {
     public static final int DEFAULT_NUMBER_OF_CLUSTERS = 3;
     public static final int DEFAULT_ITERS = 13;
     public static final int DEFAULT_MIN_TS = 3;
-    public static final int DEFAULT_SIZE = 0x100;
+    public static final int DEFAULT_SIZE = 0x80;
 
     /*
     * This is useless code, already served by the implementation-classes themselves

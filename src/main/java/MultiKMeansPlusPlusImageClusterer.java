@@ -12,11 +12,11 @@ import org.apache.commons.math3.ml.distance.DistanceMeasure;
 import java.util.Collection;
 import java.util.List;
 
-public class MultiKMeansPlusPlusImageClusterer extends ImageClusterer<ByteType> {
+public class MultiKMeansPlusPlusImageClusterer extends ImageClusterer<UnsignedByteType> {
     private MultiKMeansPlusPlusClusterer<AnnotatedPixelWrapper> multiKMeansPlusPlusClusterer;
 
     //FIXME: make NUM_TRIALS somehow flexible, e.g. getting this value from user interface
-    public MultiKMeansPlusPlusImageClusterer( final RandomAccessibleInterval<ByteType> img, int k, DistanceMeasure measure ) {
+    public MultiKMeansPlusPlusImageClusterer( final RandomAccessibleInterval<UnsignedByteType> img, int k, DistanceMeasure measure ) {
         super(img);
         multiKMeansPlusPlusClusterer= new MultiKMeansPlusPlusClusterer<>(new KMeansPlusPlusClusterer<>(k),Utils.NUM_TRIALS);
     }

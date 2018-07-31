@@ -1,15 +1,16 @@
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.type.numeric.integer.ByteType;
+import net.imglib2.type.numeric.integer.UnsignedByteType;
 import org.apache.commons.math3.ml.clustering.CentroidCluster;
 import org.apache.commons.math3.ml.clustering.FuzzyKMeansClusterer;
 import org.apache.commons.math3.ml.distance.DistanceMeasure;
 import java.util.List;
 
-public class FuzzyKMeansImageClusterer extends ImageClusterer<ByteType> {
+public class FuzzyKMeansImageClusterer extends ImageClusterer<UnsignedByteType> {
     private FuzzyKMeansClusterer<AnnotatedPixelWrapper> fuzzyKMeansClusterer;
 
     //FIXME: get the fuzziness value from the UI
-    public FuzzyKMeansImageClusterer( final RandomAccessibleInterval<ByteType> img, int k, double fuzziness, DistanceMeasure measure ) {
+    public FuzzyKMeansImageClusterer(final RandomAccessibleInterval<UnsignedByteType> img, int k, double fuzziness, DistanceMeasure measure ) {
         super(img);
         fuzzyKMeansClusterer= new FuzzyKMeansClusterer<>(k,fuzziness);
     }
