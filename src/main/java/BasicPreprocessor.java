@@ -63,6 +63,7 @@ public class BasicPreprocessor implements HaralickImageProcessor {
          * normalisation step
          */
         //FIXME:
+        /*
         if ( mx == 0 )
             mx= 1;
         for ( int i= 0; i < m; ++i )
@@ -75,6 +76,7 @@ public class BasicPreprocessor implements HaralickImageProcessor {
                 g[i][j]= Math.min(g[i][j],W-1);
             }
         H= W;
+        */
 
         counts = new double[H][H];
         probabilities = new double[H][H];

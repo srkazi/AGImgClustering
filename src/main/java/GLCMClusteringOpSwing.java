@@ -11,6 +11,7 @@ import javax.swing.SwingUtilities;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.WindowManager;
+import ij.plugin.Duplicator;
 import ij.process.ImageProcessor;
 import net.imagej.Data;
 import net.imagej.DatasetService;
@@ -21,6 +22,8 @@ import net.imagej.ops.AbstractOp;
 import net.imagej.ops.Op;
 import net.imagej.ops.OpService;
 import net.imglib2.RandomAccessibleInterval;
+import net.imglib2.img.Img;
+import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.type.numeric.integer.ByteType;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
 import net.imglib2.type.numeric.real.FloatType;
@@ -41,6 +44,9 @@ import org.scijava.util.RealRect;
 @Plugin(type = Command.class,
 	menuPath = "Clustering > GLCM Clustering Swing")
 public class GLCMClusteringOpSwing implements Command {
+
+    @Parameter
+    private ImagePlus input;
 
 	@Parameter
     private RandomAccessibleInterval<UnsignedByteType> img;
@@ -100,6 +106,9 @@ public class GLCMClusteringOpSwing implements Command {
 			dialog.setDisplay(display);
 			dialog.setImg(img);
 			dialog.setOverlayService(overlayService);
+			ImagePlus selectedRegionImp = new Duplicator().run(input);
+			Img<UnsignedByteType> selectedRegionImg = ImageJFunctions.wrapByte(selectedRegionImp);
+			dialog.setSelectedRegion(selectedRegionImg);
 			/**
 			 * enables ROI (i.e. selection)
 			 */

@@ -57,8 +57,9 @@ public class GLCMClusteringFrame extends JFrame {
 	private final JPanel contentPanel= new JPanel();
 	private final JTabbedPane tabbedPane= new JTabbedPane();
 	private JMenuBar bar;
+    private Img<UnsignedByteType> selectedRegion;
 
-	public GLCMClusteringFrame() {
+    public GLCMClusteringFrame() {
 		setBounds(100,100,300,300);
 		this.setTitle("Clustering");
 
@@ -220,7 +221,7 @@ public class GLCMClusteringFrame extends JFrame {
 	    /*
 		RealRect r= overlayService.getSelectionBounds(display);
 		*/
-		MultiKMeansPlusPlusImageClusterer clusterer= new MultiKMeansPlusPlusImageClusterer(flag,img,k, numIters, trials,null);
+		MultiKMeansPlusPlusImageClusterer clusterer= new MultiKMeansPlusPlusImageClusterer(flag,selectedRegion,k, numIters, trials,null);
 		log.info("[Launching Multi-KMeans Clustering]");
 		List<CentroidCluster<AnnotatedPixelWrapper>> list= clusterer.cluster();
 		drawResult(list);
@@ -229,14 +230,14 @@ public class GLCMClusteringFrame extends JFrame {
 		log.info("[DONE Multi-KMeans Clustering]");
 	}
 	private void dbscanClustering( int minPts, double eps ) {
-		DBSCANImageClusterer clusterer= new DBSCANImageClusterer(flag,img,eps,minPts,null);
+		DBSCANImageClusterer clusterer= new DBSCANImageClusterer(flag,selectedRegion,eps,minPts,null);
 		log.info(String.format("[Launching DBSCAN Clustering with eps= %f, minPts= %d]",eps,minPts));
 		List<Cluster<AnnotatedPixelWrapper>> list= clusterer.cluster();
 		log.info("[DONE DBSCAN Clustering]");
 		drawResult(list);
 	}
 	private void fuzzyKMeansClustering( int k, double fuzziness, int numIterations ) {
-		FuzzyKMeansImageClusterer clusterer= new FuzzyKMeansImageClusterer(flag,img,k,fuzziness, numIterations,null);
+		FuzzyKMeansImageClusterer clusterer= new FuzzyKMeansImageClusterer(flag,selectedRegion,k,fuzziness, numIterations,null);
 		log.info("[Launching FuzzyKMeans Clustering]");
 		List<CentroidCluster<AnnotatedPixelWrapper>> list= clusterer.cluster();
 		log.info("[DONE FuzzyKMeans Clustering]");
@@ -684,4 +685,8 @@ public class GLCMClusteringFrame extends JFrame {
 	public void setImg(RandomAccessibleInterval<UnsignedByteType> img) {
 		this.img = img;
 	}
+
+    public void setSelectedRegion(Img<UnsignedByteType> selectedRegionImg) {
+	    this.selectedRegion= selectedRegionImg;
+    }
 }
