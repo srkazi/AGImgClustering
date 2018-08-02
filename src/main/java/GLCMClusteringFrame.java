@@ -1,6 +1,7 @@
 import ij.IJ;
 import ij.ImagePlus;
 import ij.plugin.Duplicator;
+import ij.plugin.Text;
 import net.imagej.DatasetService;
 import net.imagej.ImgPlus;
 import net.imagej.display.ImageDisplay;
@@ -424,18 +425,132 @@ public class GLCMClusteringFrame extends JFrame {
 		JMenu featuresMenu= new JMenu("Features");
 		final JList<TextureFeatures> listOfFeatures= new JList<>(TextureFeatures.values());
 		listOfFeatures.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+		/*
+		listOfFeatures.setSelectionModel(new ListSelectionModel() {
+		    boolean gestureStarted= false;
+            @Override
+            public void setSelectionInterval(int index0, int index1) {
+                if(!gestureStarted){
+                    if (isSelectedIndex(index0)) {
+                        removeSelectionInterval(index0, index1);
+                    } else {
+                        addSelectionInterval(index0, index1);
+                    }
+                }
+                gestureStarted = true;
+            }
+
+            @Override
+            public void addSelectionInterval(int index0, int index1) {
+
+            }
+
+            @Override
+            public void removeSelectionInterval(int index0, int index1) {
+
+            }
+
+            @Override
+            public int getMinSelectionIndex() {
+                return 0;
+            }
+
+            @Override
+            public int getMaxSelectionIndex() {
+                return 0;
+            }
+
+            @Override
+            public boolean isSelectedIndex(int index) {
+                return false;
+            }
+
+            @Override
+            public int getAnchorSelectionIndex() {
+                return 0;
+            }
+
+            @Override
+            public void setAnchorSelectionIndex(int index) {
+
+            }
+
+            @Override
+            public int getLeadSelectionIndex() {
+                return 0;
+            }
+
+            @Override
+            public void setLeadSelectionIndex(int index) {
+
+            }
+
+            @Override
+            public void clearSelection() {
+
+            }
+
+            @Override
+            public boolean isSelectionEmpty() {
+                return false;
+            }
+
+            @Override
+            public void insertIndexInterval(int index, int length, boolean before) {
+
+            }
+
+            @Override
+            public void removeIndexInterval(int index0, int index1) {
+
+            }
+
+            @Override
+            public void setValueIsAdjusting(boolean valueIsAdjusting) {
+                if ( valueIsAdjusting == false) {
+                    gestureStarted = false;
+                }
+            }
+
+            @Override
+            public boolean getValueIsAdjusting() {
+                return false;
+            }
+
+            @Override
+            public void setSelectionMode(int selectionMode) {
+
+            }
+
+            @Override
+            public int getSelectionMode() {
+                return 0;
+            }
+
+            @Override
+            public void addListSelectionListener(ListSelectionListener x) {
+
+            }
+
+            @Override
+            public void removeListSelectionListener(ListSelectionListener x) {
+
+            }
+        });
+        */
 		listOfFeatures.addListSelectionListener(new ListSelectionListener() {
             @Override
             public void valueChanged( ListSelectionEvent e ) {
-                for ( int row= e.getFirstIndex(); row <= e.getLastIndex(); ++row ) {
+                for (int row = 0; row < TextureFeatures.values().length; ++row ) {
                     if ( listOfFeatures.isSelectedIndex(row) ) {
                         flag|= (1<<row);
                     }
+                    else flag&= ~(1<<row);
                 }
                 log.info("The features chosen: ");
                 for ( int i= 0; i < TextureFeatures.values().length; ++i )
                     if ( 0 != (flag & (1<<i)) )
-                        log.info(TextureFeatures.values()[i]);
+                        log.info("Chosen: "+TextureFeatures.values()[i]);
             }
         });
 		featuresMenu.add(listOfFeatures);

@@ -12,6 +12,7 @@ public class AnnotatedPixelWrapper implements Clusterable {
     public AnnotatedPixelWrapper(Pair<Integer,Integer> cellLocation, double []features ) {
         this.location= cellLocation;
         this.features= features;
+        System.out.println("The number of features chosen: "+features.length);
     }
 
     /**

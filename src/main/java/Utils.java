@@ -58,13 +58,15 @@ public class Utils {
     }
 
     private static double[] calcFeatures( int flag, int[][] window ) {
-        double []features= new double[TextureFeatures.values().length];
+        double []features= new double[Integer.bitCount(flag)];
         HaralickImageProcessor processor= new AggregateProcessor(window);
         //TODO: rewrite using Stream syntax
-        int k= 0;
-        for ( TextureFeatures x: TextureFeatures.values() )
-            if ( (flag & (1<<k)) != 0 )
-                features[k++]= processor.getValue(x);
+        int k= 0, j= 0;
+        for ( TextureFeatures x: TextureFeatures.values() ) {
+            if ((flag & (1 << k)) != 0)
+                features[j++] = processor.getValue(x);
+            ++k;
+        }
         return features;
     }
 }
