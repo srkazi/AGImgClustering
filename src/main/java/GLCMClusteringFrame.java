@@ -29,8 +29,7 @@ import org.scijava.util.RealRect;
 
 import javax.swing.*;
 import javax.swing.border.EtchedBorder;
-import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
+import javax.swing.event.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -240,9 +239,15 @@ public class GLCMClusteringFrame extends JFrame {
 	private void fuzzyKMeansClustering( int k, double fuzziness, int numIterations ) {
 		FuzzyKMeansImageClusterer clusterer= new FuzzyKMeansImageClusterer(flag,selectedRegion,k,fuzziness, numIterations,null);
 		log.info("[Launching FuzzyKMeans Clustering]");
-		List<CentroidCluster<AnnotatedPixelWrapper>> list= clusterer.cluster();
-		log.info("[DONE FuzzyKMeans Clustering]");
-		drawResult(list);
+		try {
+            List<CentroidCluster<AnnotatedPixelWrapper>> list = clusterer.cluster();
+            log.info("[DONE FuzzyKMeans Clustering]");
+            drawResult(list);
+        } catch ( Exception e ) {
+            log.info(e.getCause());
+		    log.info(e.getMessage());
+		    e.printStackTrace();
+        }
 	}
 
 	private void drawResult( List<? extends Cluster<AnnotatedPixelWrapper>> list ) {
@@ -425,119 +430,6 @@ public class GLCMClusteringFrame extends JFrame {
 		JMenu featuresMenu= new JMenu("Features");
 		final JList<TextureFeatures> listOfFeatures= new JList<>(TextureFeatures.values());
 		listOfFeatures.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
-		/*
-		listOfFeatures.setSelectionModel(new ListSelectionModel() {
-		    boolean gestureStarted= false;
-            @Override
-            public void setSelectionInterval(int index0, int index1) {
-                if(!gestureStarted){
-                    if (isSelectedIndex(index0)) {
-                        removeSelectionInterval(index0, index1);
-                    } else {
-                        addSelectionInterval(index0, index1);
-                    }
-                }
-                gestureStarted = true;
-            }
-
-            @Override
-            public void addSelectionInterval(int index0, int index1) {
-
-            }
-
-            @Override
-            public void removeSelectionInterval(int index0, int index1) {
-
-            }
-
-            @Override
-            public int getMinSelectionIndex() {
-                return 0;
-            }
-
-            @Override
-            public int getMaxSelectionIndex() {
-                return 0;
-            }
-
-            @Override
-            public boolean isSelectedIndex(int index) {
-                return false;
-            }
-
-            @Override
-            public int getAnchorSelectionIndex() {
-                return 0;
-            }
-
-            @Override
-            public void setAnchorSelectionIndex(int index) {
-
-            }
-
-            @Override
-            public int getLeadSelectionIndex() {
-                return 0;
-            }
-
-            @Override
-            public void setLeadSelectionIndex(int index) {
-
-            }
-
-            @Override
-            public void clearSelection() {
-
-            }
-
-            @Override
-            public boolean isSelectionEmpty() {
-                return false;
-            }
-
-            @Override
-            public void insertIndexInterval(int index, int length, boolean before) {
-
-            }
-
-            @Override
-            public void removeIndexInterval(int index0, int index1) {
-
-            }
-
-            @Override
-            public void setValueIsAdjusting(boolean valueIsAdjusting) {
-                if ( valueIsAdjusting == false) {
-                    gestureStarted = false;
-                }
-            }
-
-            @Override
-            public boolean getValueIsAdjusting() {
-                return false;
-            }
-
-            @Override
-            public void setSelectionMode(int selectionMode) {
-
-            }
-
-            @Override
-            public int getSelectionMode() {
-                return 0;
-            }
-
-            @Override
-            public void addListSelectionListener(ListSelectionListener x) {
-
-            }
-
-            @Override
-            public void removeListSelectionListener(ListSelectionListener x) {
-
-            }
-        });
-        */
 		listOfFeatures.addListSelectionListener(new ListSelectionListener() {
             @Override
             public void valueChanged( ListSelectionEvent e ) {

@@ -16,7 +16,7 @@ public class FuzzyKMeansImageClusterer extends ImageClusterer<UnsignedByteType> 
     public FuzzyKMeansImageClusterer( int flag, final RandomAccessibleInterval<UnsignedByteType> img, int k, double fuzziness, int iterations, DistanceMeasure measure ) {
         super(img);
         mask= flag;
-        fuzzyKMeansClusterer= new FuzzyKMeansClusterer<>(k,fuzziness,iterations,measure);
+        fuzzyKMeansClusterer= new FuzzyKMeansClusterer<>(k,fuzziness,iterations,measure==null?new EuclideanDistance():measure);
     }
 
     public List<CentroidCluster<AnnotatedPixelWrapper>> cluster() {

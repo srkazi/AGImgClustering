@@ -18,7 +18,7 @@ public class BasicPreprocessor implements HaralickImageProcessor {
     private DescriptiveStatistics statsPij= new DescriptiveStatistics();
     private int [][]g;
 
-    private static final int W= 8;
+    private static final int W= 16;
 
     public <T extends MatrixTraverser>
     BasicPreprocessor( final RandomAccessibleInterval<Integer> img, Class<T> traverserImplClass ) {
@@ -63,7 +63,6 @@ public class BasicPreprocessor implements HaralickImageProcessor {
          * normalisation step
          */
         //FIXME:
-        /*
         if ( mx == 0 )
             mx= 1;
         for ( int i= 0; i < m; ++i )
@@ -76,7 +75,6 @@ public class BasicPreprocessor implements HaralickImageProcessor {
                 g[i][j]= Math.min(g[i][j],W-1);
             }
         H= W;
-        */
 
         counts = new double[H][H];
         probabilities = new double[H][H];
