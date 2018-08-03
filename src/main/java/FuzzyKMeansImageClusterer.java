@@ -10,17 +10,16 @@ import java.util.List;
 
 public class FuzzyKMeansImageClusterer extends ImageClusterer<UnsignedByteType> {
     private FuzzyKMeansClusterer<AnnotatedPixelWrapper> fuzzyKMeansClusterer;
-    private int mask;
+    private int mask,sz;
 
-    //FIXME: get the fuzziness value from the UI
-    public FuzzyKMeansImageClusterer( int flag, final RandomAccessibleInterval<UnsignedByteType> img, int k, double fuzziness, int iterations, DistanceMeasure measure ) {
+    public FuzzyKMeansImageClusterer( int flag, final RandomAccessibleInterval<UnsignedByteType> img, int k, double fuzziness, int iterations, DistanceMeasure measure, int sz ) {
         super(img);
-        mask= flag;
+        mask= flag; this.sz= sz;
         fuzzyKMeansClusterer= new FuzzyKMeansClusterer<>(k,fuzziness,iterations,measure==null?new EuclideanDistance():measure);
     }
 
     public List<CentroidCluster<AnnotatedPixelWrapper>> cluster() {
-        return fuzzyKMeansClusterer.cluster( Utils.annotateWithSlidingWindow(mask,g,Utils.DEFAULT_WINDOW_SIZE) );
+        return fuzzyKMeansClusterer.cluster( Utils.annotateWithSlidingWindow(mask,g,sz) );
     }
 }
 

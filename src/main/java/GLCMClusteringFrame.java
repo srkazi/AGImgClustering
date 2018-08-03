@@ -1,31 +1,23 @@
 import ij.IJ;
 import ij.ImagePlus;
 import ij.plugin.Duplicator;
-import ij.plugin.Text;
 import net.imagej.DatasetService;
-import net.imagej.ImgPlus;
 import net.imagej.display.ImageDisplay;
 import net.imagej.display.OverlayService;
 import net.imagej.ops.OpService;
 import net.imglib2.*;
 import net.imglib2.img.Img;
-import net.imglib2.img.ImgFactory;
-import net.imglib2.img.array.ArrayImgFactory;
 import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.img.display.imagej.ImageJFunctions;
-import net.imglib2.ops.parse.token.Int;
-import net.imglib2.type.numeric.integer.ByteType;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
 import org.apache.commons.math3.ml.clustering.CentroidCluster;
 import org.apache.commons.math3.ml.clustering.Cluster;
-import org.apache.commons.math3.ml.distance.EuclideanDistance;
+import org.apache.commons.math3.ml.distance.*;
 import org.scijava.app.StatusService;
 import org.scijava.command.CommandService;
 import org.scijava.log.LogService;
 import org.scijava.thread.ThreadService;
 import org.scijava.ui.UIService;
-import org.scijava.util.IntRect;
-import org.scijava.util.RealRect;
 
 import javax.swing.*;
 import javax.swing.border.EtchedBorder;
@@ -33,7 +25,9 @@ import javax.swing.event.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class GLCMClusteringFrame extends JFrame {
 
@@ -58,6 +52,7 @@ public class GLCMClusteringFrame extends JFrame {
 	private final JTabbedPane tabbedPane= new JTabbedPane();
 	private JMenuBar bar;
     private Img<UnsignedByteType> selectedRegion;
+    private DistanceMeasure selectedDistance= null;
 
     public GLCMClusteringFrame() {
 		setBounds(100,100,300,300);
@@ -200,6 +195,8 @@ public class GLCMClusteringFrame extends JFrame {
                         trials= Utils.NUM_TRIALS;
 					}
 					log.info("Read k= "+k);
+					selectDistanceMeasure();
+					getWindowSize();
 					multiKMeansPPClustering(k,numIters,trials);
 				});
 			}
@@ -217,27 +214,53 @@ public class GLCMClusteringFrame extends JFrame {
 		return panel;
 	}
 
-	public void multiKMeansPPClustering( int k, int numIters, int trials ) {
+	private int windowSize;
+    private void getWindowSize() {
+        for ( Map.Entry<String,JRadioButtonMenuItem> entry: str2windowsize.entrySet() ) {
+            JRadioButtonMenuItem item= entry.getValue();
+            if ( item.isSelected() ) {
+                windowSize= Integer.parseInt(entry.getKey().substring(0,entry.getKey().indexOf("x")));
+                log.info("Selected window size: "+windowSize);
+                return ;
+            }
+        }
+        windowSize= Utils.DEFAULT_WINDOW_SIZE;
+        log.info("Selected window size: "+windowSize);
+    }
+
+    public void multiKMeansPPClustering( int k, int numIters, int trials ) {
 	    /*
 		RealRect r= overlayService.getSelectionBounds(display);
 		*/
-		MultiKMeansPlusPlusImageClusterer clusterer= new MultiKMeansPlusPlusImageClusterer(flag,selectedRegion,k, numIters, trials,null);
+		MultiKMeansPlusPlusImageClusterer clusterer= new MultiKMeansPlusPlusImageClusterer(flag,selectedRegion,k, numIters, trials,selectedDistance,windowSize);
 		log.info("[Launching Multi-KMeans Clustering]");
-		List<CentroidCluster<AnnotatedPixelWrapper>> list= clusterer.cluster();
-		drawResult(list);
-		//IJ.run("Stack to Images","");
-		//IJ.run("Merge Channels...","");
-		log.info("[DONE Multi-KMeans Clustering]");
+		try {
+            List<CentroidCluster<AnnotatedPixelWrapper>> list = clusterer.cluster();
+            drawResult(list);
+            log.info("[DONE Multi-KMeans Clustering]");
+        } catch ( Exception e ) {
+		    log.info(e.getCause());
+		    log.info(e.getMessage());
+		    e.printStackTrace();
+        }
 	}
+
 	private void dbscanClustering( int minPts, double eps ) {
-		DBSCANImageClusterer clusterer= new DBSCANImageClusterer(flag,selectedRegion,eps,minPts,null);
+		DBSCANImageClusterer clusterer= new DBSCANImageClusterer(flag,selectedRegion,eps,minPts,selectedDistance,windowSize);
 		log.info(String.format("[Launching DBSCAN Clustering with eps= %f, minPts= %d]",eps,minPts));
-		List<Cluster<AnnotatedPixelWrapper>> list= clusterer.cluster();
-		log.info("[DONE DBSCAN Clustering]");
-		drawResult(list);
+		try {
+		    List<Cluster<AnnotatedPixelWrapper>> list= clusterer.cluster();
+		    log.info("[DONE DBSCAN Clustering]");
+		    drawResult(list);
+		} catch ( Exception e ) {
+		    log.info(e.getCause());
+		    log.info(e.getMessage());
+		    e.printStackTrace();
+        }
 	}
+
 	private void fuzzyKMeansClustering( int k, double fuzziness, int numIterations ) {
-		FuzzyKMeansImageClusterer clusterer= new FuzzyKMeansImageClusterer(flag,selectedRegion,k,fuzziness, numIterations,null);
+		FuzzyKMeansImageClusterer clusterer= new FuzzyKMeansImageClusterer(flag,selectedRegion,k,fuzziness,numIterations,selectedDistance,windowSize);
 		log.info("[Launching FuzzyKMeans Clustering]");
 		try {
             List<CentroidCluster<AnnotatedPixelWrapper>> list = clusterer.cluster();
@@ -371,6 +394,8 @@ public class GLCMClusteringFrame extends JFrame {
 						minPts= Utils.DEFAULT_MIN_TS;
 					}
 					log.info("Read minPts= "+minPts);
+					selectDistanceMeasure();
+					getWindowSize();
 					dbscanClustering(minPts,eps);
 				});
 			}
@@ -389,6 +414,10 @@ public class GLCMClusteringFrame extends JFrame {
 
 	}
 
+	private Map<String,DistanceMeasure> str2distance= new HashMap<>();
+    private Map<String,JRadioButtonMenuItem> str2button= new HashMap<>();
+    private Map<String,JRadioButtonMenuItem> str2windowsize= new HashMap<>();
+
 	protected void makeMenuBar() {
 		bar= new JMenuBar();
 
@@ -397,10 +426,14 @@ public class GLCMClusteringFrame extends JFrame {
 		ButtonGroup measuresGroup= new ButtonGroup();
 		//TODO: add a tooltip to each of these
 		String []distances= {"Euclidean","Chebyshev","Canberra","Manhattan","Earth Mover's"};
+        DistanceMeasure []dm= {new EuclideanDistance(),new ChebyshevDistance(), new CanberraDistance(), new ManhattanDistance(), new EarthMoversDistance()};
+        for ( int i= 0; i < distances.length; ++i )
+            str2distance.put(distances[i],dm[i]);
 		for ( String x: distances ) {
 			JRadioButtonMenuItem item = new JRadioButtonMenuItem(x);
 			measuresGroup.add(item);
 			measuresMenu.add(item);
+			str2button.put(x,item);
 		}
 		bar.add(measuresMenu);
 
@@ -411,6 +444,7 @@ public class GLCMClusteringFrame extends JFrame {
 			JRadioButtonMenuItem item = new JRadioButtonMenuItem(x);
 			windowSizesGroup.add(item);
 			windowSizeMenu.add(item);
+			str2windowsize.put(x,item);
 		}
 		bar.add(windowSizeMenu);
 
@@ -571,6 +605,8 @@ public class GLCMClusteringFrame extends JFrame {
 						k= Utils.DEFAULT_NUMBER_OF_CLUSTERS;
 						iterations= Utils.DEFAULT_ITERS;
 					}
+					selectDistanceMeasure();
+					getWindowSize();
 					log.info(String.format("k= %d, fuzziness= %f",k,fuzziness));
 					fuzzyKMeansClustering(k,fuzziness,iterations);
 				});
@@ -589,7 +625,20 @@ public class GLCMClusteringFrame extends JFrame {
 		return panel;
 	}
 
-	public static void main(final String[] args) {
+    private void selectDistanceMeasure() {
+	    for ( Map.Entry<String,DistanceMeasure> entry: str2distance.entrySet() ) {
+	        String x= entry.getKey();
+	        if ( str2button.get(x).isSelected() ) {
+	            selectedDistance= entry.getValue();
+	            log.info("Selected as distance: "+x);
+	            return ;
+            }
+        }
+        selectedDistance= new EuclideanDistance();
+        log.info("Selected as distance: Euclidean");
+    }
+
+    public static void main(final String[] args) {
 		try {
 			final GLCMClusteringFrame frame= new GLCMClusteringFrame();
 			frame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);

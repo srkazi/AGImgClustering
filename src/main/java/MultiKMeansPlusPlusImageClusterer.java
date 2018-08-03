@@ -8,24 +8,24 @@ import org.apache.commons.math3.ml.clustering.CentroidCluster;
 import org.apache.commons.math3.ml.clustering.KMeansPlusPlusClusterer;
 import org.apache.commons.math3.ml.clustering.MultiKMeansPlusPlusClusterer;
 import org.apache.commons.math3.ml.distance.DistanceMeasure;
+import org.apache.commons.math3.ml.distance.EuclideanDistance;
 
 import java.util.Collection;
 import java.util.List;
 
 public class MultiKMeansPlusPlusImageClusterer extends ImageClusterer<UnsignedByteType> {
     private MultiKMeansPlusPlusClusterer<AnnotatedPixelWrapper> multiKMeansPlusPlusClusterer;
-    private int mask;
+    private int mask,sz;
 
-    //FIXME: make NUM_TRIALS somehow flexible, e.g. getting this value from user interface
-    public MultiKMeansPlusPlusImageClusterer( int flag, final RandomAccessibleInterval<UnsignedByteType> img, int k, int numIters, int trials, DistanceMeasure measure ) {
+    public MultiKMeansPlusPlusImageClusterer( int flag, final RandomAccessibleInterval<UnsignedByteType> img, int k, int numIters, int trials, DistanceMeasure measure, int sz ) {
         super(img);
-        mask= flag;
-        multiKMeansPlusPlusClusterer= new MultiKMeansPlusPlusClusterer<>(new KMeansPlusPlusClusterer<>(k,numIters),trials);
+        mask= flag; this.sz= sz;
+        multiKMeansPlusPlusClusterer= new MultiKMeansPlusPlusClusterer<>(new KMeansPlusPlusClusterer<>(k,numIters,measure==null?new EuclideanDistance():measure),trials);
     }
 
     public List<CentroidCluster<AnnotatedPixelWrapper>> cluster() {
         System.out.printf("Starting clustering for %d %d\n",g.length,g[0].length);
-        return multiKMeansPlusPlusClusterer.cluster( Utils.annotateWithSlidingWindow(mask,g,Utils.DEFAULT_WINDOW_SIZE) );
+        return multiKMeansPlusPlusClusterer.cluster( Utils.annotateWithSlidingWindow(mask,g,sz) );
     }
 }
 
