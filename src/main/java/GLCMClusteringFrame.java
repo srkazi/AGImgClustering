@@ -278,7 +278,7 @@ public class GLCMClusteringFrame extends JFrame {
 		//Img<UnsignedByteType> img= imgFactory.create( new int[]{Utils.DEFAULT_SIZE,Utils.DEFAULT_SIZE,3}, new UnsignedByteType() );
 		Img<UnsignedByteType> img= ArrayImgs.unsignedBytes(Utils.DEFAULT_SIZE, Utils.DEFAULT_SIZE, 3);
 		RandomAccess<UnsignedByteType> r= img.randomAccess();
-		String []colors= {"00293C","1E656D","F1F3CE","F62A00"};
+		String []colors= {"00293C","1E656D","F1F3CE","F62A00","B78338","57233A","00142F","0359AE","2A6078"};
 		int currentColorIdx= 0;
 		long []p= new long[3];
 		for ( Cluster<AnnotatedPixelWrapper> cl: list ) {
