@@ -67,7 +67,7 @@
     </ciManagement>
 
     <properties>
-        <main-class>CreateANewOp</main-class>
+        <main-class>kz.ag.GLCMClusterization</main-class>
         <license.licenseName>cc0</license.licenseName>
         <license.copyrightOwners>N/A</license.copyrightOwners>
         <license.projectName>ImageJ software for multidimensional image processing and analysis.</license.projectName>
