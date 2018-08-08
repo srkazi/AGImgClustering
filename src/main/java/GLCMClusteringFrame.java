@@ -1,3 +1,4 @@
+import charts.ClusterSizePieChart;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.plugin.Duplicator;
@@ -26,6 +27,7 @@ import javax.swing.event.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -190,6 +192,10 @@ public class GLCMClusteringFrame extends JFrame {
 		String []colors= {"00293C","1E656D","F1F3CE","F62A00","B78338","57233A","00142F","0359AE","2A6078"};
 		int currentColorIdx= 0;
 		long []p= new long[3];
+		Map<String,Object[]> map= new HashMap<>();
+		double total= 0;
+		for ( Cluster<AnnotatedPixelWrapper> cl: list )
+			total+= cl.getPoints().size();
 		for ( Cluster<AnnotatedPixelWrapper> cl: list ) {
 			List<AnnotatedPixelWrapper> points= cl.getPoints();
 			int redChannel= Integer.parseInt(colors[currentColorIdx].substring(0,2),16);
@@ -207,6 +213,8 @@ public class GLCMClusteringFrame extends JFrame {
 				r.get().set(greenChannel);
 				p[2]= 2; r.setPosition(p);
 				r.get().set(blueChannel);
+				Color col= new Color(redChannel,greenChannel,blueChannel);
+				map.put(String.format("C%d: %.2f",currentColorIdx,100.00*points.size()/total),new Object[]{col,Double.valueOf(points.size()/total)});
 			}
 			++currentColorIdx;
 		}
@@ -215,6 +223,16 @@ public class GLCMClusteringFrame extends JFrame {
 		imp= new Duplicator().run(imp);
 		imp.show();
 		IJ.run("Stack to RGB", "");
+
+		//TODO: fix PieChart
+		//https://stackoverflow.com/questions/13166402/drawn-image-inside-panel-seems-to-have-wrong-x-y-offset
+		SwingUtilities.invokeLater(()-> {
+			ClusterSizePieChart pieChart= new ClusterSizePieChart("Clusterization",map);
+			pieChart.setSize(800, 400);
+			pieChart.setLocationRelativeTo(null);
+			pieChart.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+			pieChart.setVisible(true);
+		});
 	}
 
 	private JComponent makeMultiKMeansTab() {
