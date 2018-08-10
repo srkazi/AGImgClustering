@@ -27,16 +27,11 @@ import javax.swing.event.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class GLCMClusteringFrame extends JFrame {
-
-	final static boolean shouldFill = true;
-	final static boolean shouldWeightX = true;
-	final static boolean RIGHT_TO_LEFT = false;
 
 	private int flag= 0;
     private OpService ops;
@@ -57,7 +52,7 @@ public class GLCMClusteringFrame extends JFrame {
     private Img<UnsignedByteType> selectedRegion;
     private DistanceMeasure selectedDistance= null;
 	private int rescaleFactor= Utils.DEFAULT_RESCALE_FACTOR;
-	private int windowSize;
+	private int windowSize, gridSize;
 
 	public GLCMClusteringFrame() {
 		setBounds(100,100,300,300);
@@ -92,13 +87,11 @@ public class GLCMClusteringFrame extends JFrame {
 		makeMenuBar();
 	}
 
-
-
-
 	private Map<String,DistanceMeasure> str2distance= new HashMap<>();
     private Map<String,JRadioButtonMenuItem> str2button= new HashMap<>();
     private Map<String,JRadioButtonMenuItem> str2windowsize= new HashMap<>();
 	private Map<String,JRadioButtonMenuItem> str2resize= new HashMap<>();
+	private Map<String,JRadioButtonMenuItem> str2grid= new HashMap<>();
 
 	protected void makeMenuBar() {
 		bar= new JMenuBar();
@@ -174,6 +167,17 @@ public class GLCMClusteringFrame extends JFrame {
         });
 		featuresMenu.add(listOfFeatures);
 		bar.add(featuresMenu);
+
+		JMenu gridMenu= new JMenu("Grid");
+		String []gridSizes= {"4x4","8x8","16x16","32x32","64x64","128x128"};
+		ButtonGroup gridButtonGroup= new ButtonGroup();
+		for ( String x: gridSizes ) {
+			JRadioButtonMenuItem item = new JRadioButtonMenuItem(x);
+			gridButtonGroup.add(item);
+			gridMenu.add(item);
+			str2grid.put(x,item);
+		}
+		bar.add(gridMenu);
 
 		this.setJMenuBar(bar);
 	}

@@ -2,7 +2,6 @@ package charts;
 
 import javax.swing.*;
 
-import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.plot.PiePlot;
@@ -11,6 +10,8 @@ import org.jfree.data.general.PieDataset;
 
 import java.awt.*;
 import java.util.Map;
+
+import static org.jfree.chart.ChartFactory.createPieChart;
 
 public class ClusterSizePieChart extends JFrame {
 
@@ -30,7 +31,7 @@ public class ClusterSizePieChart extends JFrame {
     }
 
     private JFreeChart createChart( PieDataset dataset ) {
-        JFreeChart chart = ChartFactory.createPieChart(
+        JFreeChart chart = createPieChart(
                 "Cluster Sizes",   // chart title
                 dataset,          // data
                 true,             // include legend

@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="Maven: net.imglib2:imglib2-realtransform:2.0.0-beta-37">
+    <CLASSES>
+      <root url="jar://$MAVEN_REPOSITORY$/net/imglib2/imglib2-realtransform/2.0.0-beta-37/imglib2-realtransform-2.0.0-beta-37.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$MAVEN_REPOSITORY$/net/imglib2/imglib2-realtransform/2.0.0-beta-37/imglib2-realtransform-2.0.0-beta-37-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$MAVEN_REPOSITORY$/net/imglib2/imglib2-realtransform/2.0.0-beta-37/imglib2-realtransform-2.0.0-beta-37-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>
