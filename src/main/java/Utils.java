@@ -10,7 +10,7 @@ public class Utils {
     public static final int DEFAULT_NUMBER_OF_CLUSTERS = 3;
     public static final int DEFAULT_ITERS = (1<<17);
     public static final int DEFAULT_MIN_TS = 3;
-    public static final int DEFAULT_SIZE = 0x200;
+    public static final int DEFAULT_SIZE = 699;
     public static final int DEFAULT_RESCALE_FACTOR = 1;
 
     /*
@@ -70,5 +70,9 @@ public class Utils {
             ++k;
         }
         return features;
+    }
+
+    public static int MASK( int logh ) {
+        return (1<<logh)-1;
     }
 }
