@@ -1,20 +1,20 @@
 import net.imglib2.RandomAccessibleInterval;
 
 public class AggregateProcessor implements HaralickImageProcessor {
-    private BasicPreprocessor bpRows, bpCols, bpMainDiag, bpAuxDiag;
+    private ConcurrentPreprocessor bpRows, bpCols, bpMainDiag, bpAuxDiag;
 
     public AggregateProcessor( int [][]window ) {
-        bpRows= new BasicPreprocessor(window, RowwiseTraverser.class);
-        bpCols= new BasicPreprocessor(window, ColumnwiseTraverser.class);
-        bpMainDiag= new BasicPreprocessor(window, MaindiagonalTraverser.class);
-        bpAuxDiag= new BasicPreprocessor(window, AuxiliarydiagonalTraverser.class);
+        bpRows= new ConcurrentPreprocessor(window, RowwiseTraverser.class);
+        bpCols= new ConcurrentPreprocessor(window, ColumnwiseTraverser.class);
+        bpMainDiag= new ConcurrentPreprocessor(window, MaindiagonalTraverser.class);
+        bpAuxDiag= new ConcurrentPreprocessor(window, AuxiliarydiagonalTraverser.class);
     }
 
     public AggregateProcessor( final RandomAccessibleInterval<Integer> img ) {
-        bpRows= new BasicPreprocessor(img, RowwiseTraverser.class);
-        bpCols= new BasicPreprocessor(img, ColumnwiseTraverser.class);
-        bpMainDiag= new BasicPreprocessor(img, MaindiagonalTraverser.class);
-        bpAuxDiag= new BasicPreprocessor(img, AuxiliarydiagonalTraverser.class);
+        bpRows= new ConcurrentPreprocessor(img, RowwiseTraverser.class);
+        bpCols= new ConcurrentPreprocessor(img, ColumnwiseTraverser.class);
+        bpMainDiag= new ConcurrentPreprocessor(img, MaindiagonalTraverser.class);
+        bpAuxDiag= new ConcurrentPreprocessor(img, AuxiliarydiagonalTraverser.class);
     }
 
     @Override
