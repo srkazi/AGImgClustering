@@ -15,6 +15,7 @@ import net.imglib2.view.Views;
 import org.apache.commons.math3.ml.clustering.CentroidCluster;
 import org.apache.commons.math3.ml.clustering.Cluster;
 import org.apache.commons.math3.ml.distance.*;
+import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.scijava.app.StatusService;
 import org.scijava.command.CommandService;
 import org.scijava.log.LogService;
@@ -49,6 +50,7 @@ public class GLCMClusteringFrame extends JFrame {
 	private final JPanel contentPanel= new JPanel();
 	private final JTabbedPane tabbedPane= new JTabbedPane();
 	private JMenuBar bar;
+	private JButton gridifyIt;
     private Img<UnsignedByteType> selectedRegion;
     private DistanceMeasure selectedDistance= null;
 	private int rescaleFactor= Utils.DEFAULT_RESCALE_FACTOR;
@@ -169,7 +171,7 @@ public class GLCMClusteringFrame extends JFrame {
 		bar.add(featuresMenu);
 
 		JMenu gridMenu= new JMenu("Grid");
-		String []gridSizes= {"4x4","8x8","16x16","32x32","64x64","128x128"};
+		String []gridSizes= {"8x8","16x16","32x32","64x64","128x128"};
 		ButtonGroup gridButtonGroup= new ButtonGroup();
 		for ( String x: gridSizes ) {
 			JRadioButtonMenuItem item = new JRadioButtonMenuItem(x);
@@ -332,7 +334,84 @@ public class GLCMClusteringFrame extends JFrame {
 		c.weightx= 0.7;
 		panel.add(clusterIt,c);
 
+		gridifyIt= new JButton("Gridify");
+		clusterIt.addActionListener( new ActionListener() {
+			@Override
+			public void actionPerformed( ActionEvent e ) {
+				thread.run( ()-> {
+					try {
+						 gridSize= Integer.parseInt(formattedTextField.getText());
+					} catch ( NumberFormatException nfe ) {
+					    gridSize= Utils.DEFAULT_GRID_SIZE;
+					}
+					log.info("Grid size: "+gridSize);
+					selectGridSize();
+					gridfy();
+					//getWindowSize();
+					//selectResize();
+					//multiKMeansPPClustering(k,numIters,trials);
+				});
+			}
+		});
+		c= new GridBagConstraints();
+		c.gridx= 1;
+		c.gridy= 3;
+		c.gridwidth= 1;
+		c.gridheight= 1;
+		c.fill= GridBagConstraints.HORIZONTAL;
+		c.anchor= GridBagConstraints.CENTER;
+		c.weightx= 0.7;
+		panel.add(gridifyIt,c);
+
 		return panel;
+	}
+
+	private void gridfy() {
+	    List<Pair<AxisAlignedRectangle,Double>> res= Gridifier.gridify(gridSize,currentSelection);
+		DescriptiveStatistics stat= new DescriptiveStatistics();
+		for ( Pair<AxisAlignedRectangle,Double> pr: res )
+			stat.addValue(pr.getY());
+		double mn= stat.getMean();
+		int m= (int)currentSelection.dimension(0), n= (int)currentSelection.dimension(1);
+
+		//TODO: make a new copy of "currentSelection"
+		RandomAccessibleInterval<UnsignedByteType> copy= currentSelection;
+		Img<UnsignedByteType> img= ArrayImgs.unsignedBytes(m,n, 3);
+		RandomAccess<UnsignedByteType> r= img.randomAccess();
+
+		for ( Pair<AxisAlignedRectangle,Double> pr: res ) {
+		    if ( pr.getY() < mn ) continue ;
+		    drawRectangle(r,pr.getX());
+        }
+
+        ImagePlus imp= ImageJFunctions.wrap(img,"result");
+		imp= new Duplicator().run(imp);
+		imp.show();
+		//IJ.run("Stack to RGB", "");
+	}
+
+	private void drawRectangle( final RandomAccess<UnsignedByteType> r, final AxisAlignedRectangle rect ) {
+	    //TODO
+		long []p= new long[3];
+		for ( int i= rect.x0(); i <= rect.x1(); ++i )
+			for ( int j= rect.y0(); j <= rect.y1(); ++j ) {
+				p[0]= i; p[1]= j; p[2]= 0;
+				r.setPosition(p);
+				//copy the contents of currentSelection's (i,j) cell into the duplicated image
+			}
+	}
+
+	private void selectGridSize() {
+		for ( Map.Entry<String,JRadioButtonMenuItem> entry: str2grid.entrySet() ) {
+            JRadioButtonMenuItem item= entry.getValue();
+            if ( item.isSelected() ) {
+                gridSize= Integer.parseInt(entry.getKey().substring(0,entry.getKey().indexOf("x")));
+                log.info("Selected grid size is: "+gridSize);
+                return ;
+            }
+        }
+        gridSize= Utils.DEFAULT_GRID_SIZE;
+		log.info("Selected grid size is: "+gridSize);
 	}
 
 	private JComponent makeDBSCANTab( String dbscan ) {
@@ -584,7 +663,6 @@ public class GLCMClusteringFrame extends JFrame {
         windowSize= Utils.DEFAULT_WINDOW_SIZE;
         log.info("Selected window size: "+windowSize);
     }
-
 
     private void selectDistanceMeasure() {
 	    for ( Map.Entry<String,DistanceMeasure> entry: str2distance.entrySet() ) {

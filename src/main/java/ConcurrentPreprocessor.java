@@ -5,12 +5,110 @@ import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.util.Util;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public class ConcurrentPreprocessor implements HaralickImageProcessor {
+
+    private class IndexedMap implements Map<Integer,Double> {
+        private double []acc;
+        private Set<Integer> set= new HashSet<>();
+        private Set<Entry<Integer,Double>> es= null;
+
+        public IndexedMap( int m ) {
+            acc= new double[m];
+        }
+
+        @Override
+        public int size() {
+            return set.size();
+        }
+
+        @Override
+        public boolean isEmpty() {
+            return set.isEmpty();
+        }
+
+        @Override
+        public boolean containsKey(Object key) {
+            if ( !(key instanceof Integer) )
+                return false ;
+            Integer obj= (Integer)key;
+            return set.contains(obj);
+        }
+        @Override
+        public boolean containsValue(Object value) {
+            return false;
+        }
+
+        @Override
+        public Double get(Object key) {
+            return acc[(int)(key)];
+        }
+
+        @Override
+        public Double put( Integer key, Double value ) {
+            if ( !set.contains(key) )
+                set.add(key);
+            acc[key]= value;
+            return null ;
+        }
+
+        @Override
+        public Double remove(Object key) {
+            throw new UnsupportedOperationException("remove() of IndexedMap");
+        }
+
+        @Override
+        public void putAll(Map<? extends Integer, ? extends Double> m) {
+            throw new UnsupportedOperationException("remove() of IndexedMap");
+        }
+
+        @Override
+        public void clear() {
+            set.clear();
+            Arrays.fill(acc,0);
+        }
+
+        @Override
+        public Set<Integer> keySet() {
+            return set;
+        }
+
+        @Override
+        public Collection<Double> values() {
+            throw new UnsupportedOperationException("values() of IndexMap");
+        }
+
+        void insert( Integer key ) {
+            if ( !set.contains(key) )
+                set.add(key);
+            ++acc[key];
+        }
+
+        @Override
+        public Set<Entry<Integer, Double>> entrySet() {
+            if ( es == null ) {
+                es= new HashSet<>();
+                for ( Integer key: set ) {
+                    es.add(new AbstractMap.SimpleEntry<>(key,acc[key]));
+                }
+            }
+            return es;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            return false;
+        }
+
+        @Override
+        public int hashCode() {
+            return 0;
+        }
+    }
+
     private int m, n, mi, mx, H, LOGH;
-    private Map<Integer,Double> counts= new HashMap<>(), probabilities= new HashMap<>();
+    private IndexedMap counts, probabilities;
     private double []px,py,p_xpy,p_xmy; //p_{x+y}, p_{x-y}
     private double mux= 0,muy= 0,sigmax= 0,sigmay= 0;
     private MatrixTraverser traverser;
@@ -21,7 +119,7 @@ public class ConcurrentPreprocessor implements HaralickImageProcessor {
     private DescriptiveStatistics statsPij= new DescriptiveStatistics();
     private int [][]g;
 
-    private static final int W= 80;
+    private static final int W= 128;
 
     public <T extends MatrixTraverser>
     ConcurrentPreprocessor( final RandomAccessibleInterval<Integer> img, Class<T> traverserImplClass ) {
@@ -76,6 +174,9 @@ public class ConcurrentPreprocessor implements HaralickImageProcessor {
         H= Math.min(H,W);
         for ( LOGH= 0; (1 << LOGH) <= H; ++LOGH ) ;
 
+        counts= new IndexedMap(1 << (2*LOGH));
+        probabilities= new IndexedMap(1 << (2*LOGH));
+
         px= new double[H];
         py= new double[H];
         p_xpy= new double[2*H-1];
@@ -97,9 +198,9 @@ public class ConcurrentPreprocessor implements HaralickImageProcessor {
                 int y= g[prev.getX()][prev.getY()];
                 assert( !(x >= H || x < 0 || y >= H || y < 0) ): String.format("(%d,%d) is out of bounds",x,y);
                 int key= (x | (y << LOGH));
-                insert( counts, key );
+                counts.insert(key);
                 key= (y | (x << LOGH));
-                insert( counts, key );
+                counts.insert(key);
             }
         }
         /**
@@ -169,7 +270,7 @@ public class ConcurrentPreprocessor implements HaralickImageProcessor {
             }
             */
 
-        Map<Integer,Double> tmp= new HashMap<>();
+        IndexedMap tmp= new IndexedMap(H);
         for ( Map.Entry<Integer,Double> entry: probabilities.entrySet() ) {
             int i= (entry.getKey()&Utils.MASK(LOGH)), j= (entry.getKey()>>LOGH);
             assert 0 <= Math.min(i,j) && Math.max(i,j) < H;
@@ -180,33 +281,6 @@ public class ConcurrentPreprocessor implements HaralickImageProcessor {
         for ( Map.Entry<Integer,Double> entry: tmp.entrySet() ) {
             mux+= entry.getKey()*entry.getValue();
         }
-        /*
-        for ( int i= 0; i < H; ++i ) {
-            double s= 0;
-            for ( int j= 0; j < H; ++j )
-                s+= probabilities[i][j];
-            mux+= i*s;
-        }
-        */
-        tmp.clear();
-        for ( Map.Entry<Integer,Double> entry: probabilities.entrySet() ) {
-            int i= (entry.getKey()&Utils.MASK(LOGH)), j= (entry.getKey()>>LOGH);
-            assert 0 <= Math.min(i,j) && Math.max(i,j) < H;
-            if ( !tmp.containsKey(j) )
-                tmp.put(j,0.00);
-            tmp.put(j,tmp.get(j)+entry.getValue());
-        }
-        for ( Map.Entry<Integer,Double> entry: tmp.entrySet() ) {
-            muy+= entry.getKey()*entry.getValue();
-        }
-        /*
-        for ( int j= 0; j < H; ++j ) {
-            double s= 0;
-            for ( int i= 0; i < H; ++i )
-                s+= probabilities[i][j];
-            muy+= j*s;
-        }
-        */
         tmp.clear();
         for ( Map.Entry<Integer,Double> entry: probabilities.entrySet() ) {
             int i= (entry.getKey()&Utils.MASK(LOGH)), j= (entry.getKey()>>LOGH);
@@ -223,10 +297,21 @@ public class ConcurrentPreprocessor implements HaralickImageProcessor {
             double s= 0;
             for ( int j= 0; j < H; ++j )
                 s+= probabilities[i][j];
-            sigmax+= Math.pow(i-mux,2)*s;
+            mux+= i*s;
         }
         */
-        tmp.clear();
+        tmp= new IndexedMap(H);
+        for ( Map.Entry<Integer,Double> entry: probabilities.entrySet() ) {
+            int i= (entry.getKey()&Utils.MASK(LOGH)), j= (entry.getKey()>>LOGH);
+            assert 0 <= Math.min(i,j) && Math.max(i,j) < H;
+            if ( !tmp.containsKey(j) )
+                tmp.put(j,0.00);
+            tmp.put(j,tmp.get(j)+entry.getValue());
+        }
+        for ( Map.Entry<Integer,Double> entry: tmp.entrySet() ) {
+            muy+= entry.getKey()*entry.getValue();
+        }
+        tmp= new IndexedMap(H);
         for ( Map.Entry<Integer,Double> entry: probabilities.entrySet() ) {
             int i= (entry.getKey()&Utils.MASK(LOGH)), j= (entry.getKey()>>LOGH);
             assert 0 <= Math.min(i,j) && Math.max(i,j) < H;
@@ -242,17 +327,29 @@ public class ConcurrentPreprocessor implements HaralickImageProcessor {
             double s= 0;
             for ( int i= 0; i < H; ++i )
                 s+= probabilities[i][j];
+            muy+= j*s;
+        }
+        */
+
+        /*
+        for ( int i= 0; i < H; ++i ) {
+            double s= 0;
+            for ( int j= 0; j < H; ++j )
+                s+= probabilities[i][j];
+            sigmax+= Math.pow(i-mux,2)*s;
+        }
+        */
+
+        /*
+        for ( int j= 0; j < H; ++j ) {
+            double s= 0;
+            for ( int i= 0; i < H; ++i )
+                s+= probabilities[i][j];
             sigmay+= Math.pow(j-muy,2)*s;
         }
         */
         sigmax= Math.sqrt(sigmax);
         sigmay= Math.sqrt(sigmay);
-    }
-
-    private void insert( Map<Integer, Double> counts, int key ) {
-        if ( !counts.containsKey(key) )
-            counts.put(key,0.00);
-        counts.put(key,counts.get(key)+1);
     }
 
     private void calculateEntropies() {
@@ -381,7 +478,6 @@ public class ConcurrentPreprocessor implements HaralickImageProcessor {
         for ( s= 0, k= 0; k < 2*H-1; ++k )
             s+= k*p_xpy[k];
         summary.put(TextureFeatures.SUM_AVERAGE,s);
-
         /**
          * 8. Sum Entropy [sen]
          */
@@ -397,7 +493,6 @@ public class ConcurrentPreprocessor implements HaralickImageProcessor {
         for ( s= 0, k= 0; k < 2*H-1; ++k )
             s+= Math.pow(k-summary.get(TextureFeatures.SUM_ENTROPY),2)*p_xpy[k];
         summary.put(TextureFeatures.SUM_VARIANCE,s);
-
         /**
          * 9. Entropy [ent]
          */

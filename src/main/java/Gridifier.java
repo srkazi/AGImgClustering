@@ -7,8 +7,8 @@ import java.util.List;
 
 public class Gridifier {
     //TODO: concurrency is overkill here?
-    public List<Pair<AxisAlignedRectangle,Double[]>> gridify( final int gridSize,
-                                                             final RandomAccessibleInterval<UnsignedByteType> img, int flag )  {
+    public static List<Pair<AxisAlignedRectangle,Double>> gridify( final int gridSize,
+                                                             final RandomAccessibleInterval<UnsignedByteType> img )  {
         long[]n= {img.dimension(0),img.dimension(1)};
         int [][][][]windows= new int[(int)(n[0]/gridSize+1)][(int)(n[1]/gridSize+1)][gridSize][gridSize];
         RandomAccess<UnsignedByteType> r= img.randomAccess();
@@ -20,17 +20,11 @@ public class Gridifier {
                 r.setPosition(p);
                 windows[(int)bi][(int)bj][(int)(i%gridSize)][(int)(j%gridSize)]= r.get().get();
             }
-        List<Pair<AxisAlignedRectangle,Double[]>> res= new ArrayList<>();
-        int m= Integer.bitCount(flag);
+        List<Pair<AxisAlignedRectangle,Double>>res= new ArrayList<>();
         for ( int i= 0; i < (int)(n[0]/gridSize); ++i )
             for ( int j= 0; j < (int)(n[1]/gridSize); ++j ) {
-                AggregateProcessor a= new AggregateProcessor(windows[i][j]);
-                Double[] arr= new Double[m];
-                int l=0,k=0;
-                for ( TextureFeatures ftr: TextureFeatures.values() )
-                    if ( 1 == ((flag>>k)&1) )
-                        arr[l++]= a.getValue(ftr);
-                res.add(new Pair<>(new AxisAlignedRectangle(i*gridSize,j*gridSize,(i+1)*gridSize-1,(j+1)*gridSize-1),arr));
+                res.add(new Pair<>(new AxisAlignedRectangle(i*gridSize,j*gridSize,(i+1)*gridSize-1,(j+1)*gridSize-1),
+                        Hurst.apply(windows[i][j])));
             }
         return res;
     }
