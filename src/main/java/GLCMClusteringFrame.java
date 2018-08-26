@@ -7,9 +7,11 @@ import net.imagej.display.ImageDisplay;
 import net.imagej.display.OverlayService;
 import net.imagej.ops.OpService;
 import net.imglib2.*;
+import net.imglib2.Cursor;
 import net.imglib2.img.Img;
 import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.img.display.imagej.ImageJFunctions;
+import net.imglib2.type.Type;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
 import net.imglib2.view.Views;
 import org.apache.commons.math3.ml.clustering.CentroidCluster;
@@ -53,6 +55,7 @@ public class GLCMClusteringFrame extends JFrame {
 	private JButton gridifyIt;
     private Img<UnsignedByteType> selectedRegion;
     private DistanceMeasure selectedDistance= null;
+    private RandomAccess<UnsignedByteType> src= null;
 	private int rescaleFactor= Utils.DEFAULT_RESCALE_FACTOR;
 	private int windowSize, gridSize;
 
@@ -126,7 +129,7 @@ public class GLCMClusteringFrame extends JFrame {
 		bar.add(windowSizeMenu);
 
 		JMenu resizeMenu= new JMenu("Resize");
-		String []resizeSizes= {"2:1","3:1","4:1","5:1","6:1"};
+		String []resizeSizes= {"1:1","2:1","3:1","4:1","5:1","6:1"};
 		ButtonGroup resizeButtonGroup= new ButtonGroup();
 		for ( String x: resizeSizes ) {
 			JRadioButtonMenuItem item = new JRadioButtonMenuItem(x);
@@ -331,7 +334,7 @@ public class GLCMClusteringFrame extends JFrame {
 		c.gridheight= 1;
 		c.fill= GridBagConstraints.HORIZONTAL;
 		c.anchor= GridBagConstraints.CENTER;
-		c.weightx= 0.7;
+		c.weightx= 0.5;
 		panel.add(clusterIt,c);
 
 		gridifyIt= new JButton("Gridify");
@@ -340,13 +343,12 @@ public class GLCMClusteringFrame extends JFrame {
 			public void actionPerformed( ActionEvent e ) {
 				thread.run( ()-> {
 					try {
-						 gridSize= Integer.parseInt(formattedTextField.getText());
+						selectGridSize();
 					} catch ( NumberFormatException nfe ) {
 					    gridSize= Utils.DEFAULT_GRID_SIZE;
 					}
 					log.info("Grid size: "+gridSize);
-					selectGridSize();
-					gridfy();
+					gridify();
 					//getWindowSize();
 					//selectResize();
 					//multiKMeansPPClustering(k,numIters,trials);
@@ -360,24 +362,26 @@ public class GLCMClusteringFrame extends JFrame {
 		c.gridheight= 1;
 		c.fill= GridBagConstraints.HORIZONTAL;
 		c.anchor= GridBagConstraints.CENTER;
-		c.weightx= 0.7;
+		c.weightx= 0.5;
 		panel.add(gridifyIt,c);
 
 		return panel;
 	}
 
-	private void gridfy() {
+	private void gridify() {
 	    List<Pair<AxisAlignedRectangle,Double>> res= Gridifier.gridify(gridSize,currentSelection);
 		DescriptiveStatistics stat= new DescriptiveStatistics();
 		for ( Pair<AxisAlignedRectangle,Double> pr: res )
 			stat.addValue(pr.getY());
 		double mn= stat.getMean();
-		int m= (int)currentSelection.dimension(0), n= (int)currentSelection.dimension(1);
 
 		//TODO: make a new copy of "currentSelection"
-		RandomAccessibleInterval<UnsignedByteType> copy= currentSelection;
-		Img<UnsignedByteType> img= ArrayImgs.unsignedBytes(m,n, 3);
+		//RandomAccessibleInterval<UnsignedByteType> copy= currentSelection;
+		//Img<UnsignedByteType> img= ArrayImgs.unsignedBytes(m,n, 3);
+		Img<UnsignedByteType> img= selectedRegion.copy();
 		RandomAccess<UnsignedByteType> r= img.randomAccess();
+		if ( src == null )
+			src= currentSelection.randomAccess();
 
 		for ( Pair<AxisAlignedRectangle,Double> pr: res ) {
 		    if ( pr.getY() < mn ) continue ;
@@ -392,11 +396,14 @@ public class GLCMClusteringFrame extends JFrame {
 
 	private void drawRectangle( final RandomAccess<UnsignedByteType> r, final AxisAlignedRectangle rect ) {
 	    //TODO
-		long []p= new long[3];
+		long []p= new long[3], q= new long[3];
 		for ( int i= rect.x0(); i <= rect.x1(); ++i )
 			for ( int j= rect.y0(); j <= rect.y1(); ++j ) {
 				p[0]= i; p[1]= j; p[2]= 0;
+				q[0]= i; q[1]= j; q[2]= 0;
 				r.setPosition(p);
+				src.setPosition(q);
+				r.get().set(src.get());
 				//copy the contents of currentSelection's (i,j) cell into the duplicated image
 			}
 	}
@@ -488,8 +495,36 @@ public class GLCMClusteringFrame extends JFrame {
 		c.gridheight= 1;
 		c.fill= GridBagConstraints.HORIZONTAL;
 		c.anchor= GridBagConstraints.CENTER;
-		c.weightx= 0.7;
+		c.weightx= 0.5;
 		panel.add(clusterIt,c);
+
+				gridifyIt= new JButton("Gridify");
+		clusterIt.addActionListener( new ActionListener() {
+			@Override
+			public void actionPerformed( ActionEvent e ) {
+				thread.run( ()-> {
+					try {
+						selectGridSize();
+					} catch ( NumberFormatException nfe ) {
+					    gridSize= Utils.DEFAULT_GRID_SIZE;
+					}
+					log.info("Grid size: "+gridSize);
+					gridify();
+					//getWindowSize();
+					//selectResize();
+					//multiKMeansPPClustering(k,numIters,trials);
+				});
+			}
+		});
+		c= new GridBagConstraints();
+		c.gridx= 1;
+		c.gridy= 2;
+		c.gridwidth= 1;
+		c.gridheight= 1;
+		c.fill= GridBagConstraints.HORIZONTAL;
+		c.anchor= GridBagConstraints.CENTER;
+		c.weightx= 0.5;
+		panel.add(gridifyIt,c);
 
 		return panel;
 	}
@@ -597,8 +632,36 @@ public class GLCMClusteringFrame extends JFrame {
 		c.gridheight= 1;
 		c.fill= GridBagConstraints.HORIZONTAL;
 		c.anchor= GridBagConstraints.CENTER;
-		c.weightx= 0.7;
+		c.weightx= 0.5;
 		panel.add(clusterIt,c);
+
+		gridifyIt= new JButton("Gridify");
+		clusterIt.addActionListener( new ActionListener() {
+			@Override
+			public void actionPerformed( ActionEvent e ) {
+				thread.run( ()-> {
+					try {
+						selectGridSize();
+					} catch ( NumberFormatException nfe ) {
+					    gridSize= Utils.DEFAULT_GRID_SIZE;
+					}
+					log.info("Grid size: "+gridSize);
+					gridify();
+					//getWindowSize();
+					//selectResize();
+					//multiKMeansPPClustering(k,numIters,trials);
+				});
+			}
+		});
+		c= new GridBagConstraints();
+		c.gridx= 1;
+		c.gridy= 3;
+		c.gridwidth= 1;
+		c.gridheight= 1;
+		c.fill= GridBagConstraints.HORIZONTAL;
+		c.anchor= GridBagConstraints.CENTER;
+		c.weightx= 0.5;
+		panel.add(gridifyIt,c);
 
 		return panel;
 	}
@@ -695,6 +758,7 @@ public class GLCMClusteringFrame extends JFrame {
 		if ( rescaleFactor > 1 )
 			currentSelection= Views.subsample(selectedRegion,rescaleFactor,rescaleFactor);
 		else currentSelection= selectedRegion;
+		src= currentSelection.randomAccess();
 	}
 
 	public static void main(final String[] args) {
