@@ -9,7 +9,7 @@ public class Hurst {
             for ( j= 0; j < n; ++j )
                 stat.addValue(x[k++]= window[i][j]);
         double mn= stat.getMean(), miz= Double.MAX_VALUE, maz= Double.MIN_VALUE;
-        for ( k= 0, i =0; i < m; ++i )
+        for ( k= 0, i= 0; i < m; ++i )
             for ( j= 0; j < n; ++j, ++k ) {
                 x[k]-= mn;
                 if ( k >= 1 )

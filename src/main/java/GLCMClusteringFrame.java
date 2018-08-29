@@ -370,7 +370,6 @@ public class GLCMClusteringFrame extends JFrame {
 
 	private void gridify() {
 	    effectResize();
-		System.out.printf("Entering gridify()");
 	    List<Pair<AxisAlignedRectangle,Double>> res= Gridifier.gridify(gridSize,currentSelection);
 		DescriptiveStatistics stat= new DescriptiveStatistics();
 		for ( Pair<AxisAlignedRectangle,Double> pr: res )
@@ -387,15 +386,28 @@ public class GLCMClusteringFrame extends JFrame {
 			src= currentSelection.randomAccess();
 
 		for ( Pair<AxisAlignedRectangle,Double> pr: res ) {
-		    if ( pr.getY() < mn ) continue ;
+		    if ( pr.getY() < mn ) {
+		    	blankOut(r,pr.getX());
+		    	continue ;
+			}
 		    drawRectangle(r,pr.getX());
         }
-        System.out.println("About to draw the image");
 
         ImagePlus imp= ImageJFunctions.wrap(img,"result");
 		imp= new Duplicator().run(imp);
 		imp.show();
 		//IJ.run("Stack to RGB", "");
+	}
+
+	private void blankOut( final RandomAccess<UnsignedByteType> r, final AxisAlignedRectangle rect ) {
+		long []p= new long[3];
+		for ( int i= rect.x0(); i <= rect.x1(); ++i )
+			for ( int j= rect.y0(); j <= rect.y1(); ++j ) {
+				p[0]= i; p[1]= j; p[2]= 0;
+				r.setPosition(p);
+				r.get().set(0xffffffff);
+				//copy the contents of currentSelection's (i,j) cell into the duplicated image
+			}
 	}
 
 	private void drawRectangle( final RandomAccess<UnsignedByteType> r, final AxisAlignedRectangle rect ) {
