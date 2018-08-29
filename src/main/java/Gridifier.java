@@ -1,14 +1,27 @@
+import net.imagej.ops.Ops;
 import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class Gridifier {
     //TODO: concurrency is overkill here?
     public static List<Pair<AxisAlignedRectangle,Double>> gridify( final int gridSize,
                                                              final RandomAccessibleInterval<UnsignedByteType> img )  {
+        System.out.printf("Entering gridify() with gridSize= %d\n",gridSize);
+        System.out.println(img.toString());
+        if ( img == null ) {
+            throw new IllegalArgumentException("img inside Gridifier is null");
+        }
+        try {
+            System.out.printf("Dimensions %d %d\n",img.dimension(0),img.dimension(1));
+        } catch ( Exception e ) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
         long[]n= {img.dimension(0),img.dimension(1)};
         int [][][][]windows= new int[(int)(n[0]/gridSize+1)][(int)(n[1]/gridSize+1)][gridSize][gridSize];
         RandomAccess<UnsignedByteType> r= img.randomAccess();

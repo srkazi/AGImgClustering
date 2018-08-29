@@ -338,7 +338,7 @@ public class GLCMClusteringFrame extends JFrame {
 		panel.add(clusterIt,c);
 
 		gridifyIt= new JButton("Gridify");
-		clusterIt.addActionListener( new ActionListener() {
+		gridifyIt.addActionListener( new ActionListener() {
 			@Override
 			public void actionPerformed( ActionEvent e ) {
 				thread.run( ()-> {
@@ -369,11 +369,14 @@ public class GLCMClusteringFrame extends JFrame {
 	}
 
 	private void gridify() {
+	    effectResize();
+		System.out.printf("Entering gridify()");
 	    List<Pair<AxisAlignedRectangle,Double>> res= Gridifier.gridify(gridSize,currentSelection);
 		DescriptiveStatistics stat= new DescriptiveStatistics();
 		for ( Pair<AxisAlignedRectangle,Double> pr: res )
 			stat.addValue(pr.getY());
 		double mn= stat.getMean();
+		System.out.printf("Mean-Hurst is %f\n",mn);
 
 		//TODO: make a new copy of "currentSelection"
 		//RandomAccessibleInterval<UnsignedByteType> copy= currentSelection;
@@ -387,6 +390,7 @@ public class GLCMClusteringFrame extends JFrame {
 		    if ( pr.getY() < mn ) continue ;
 		    drawRectangle(r,pr.getX());
         }
+        System.out.println("About to draw the image");
 
         ImagePlus imp= ImageJFunctions.wrap(img,"result");
 		imp= new Duplicator().run(imp);
@@ -498,8 +502,8 @@ public class GLCMClusteringFrame extends JFrame {
 		c.weightx= 0.5;
 		panel.add(clusterIt,c);
 
-				gridifyIt= new JButton("Gridify");
-		clusterIt.addActionListener( new ActionListener() {
+		gridifyIt= new JButton("Gridify");
+		gridifyIt.addActionListener( new ActionListener() {
 			@Override
 			public void actionPerformed( ActionEvent e ) {
 				thread.run( ()-> {
@@ -636,7 +640,7 @@ public class GLCMClusteringFrame extends JFrame {
 		panel.add(clusterIt,c);
 
 		gridifyIt= new JButton("Gridify");
-		clusterIt.addActionListener( new ActionListener() {
+		gridifyIt.addActionListener( new ActionListener() {
 			@Override
 			public void actionPerformed( ActionEvent e ) {
 				thread.run( ()-> {
