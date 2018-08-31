@@ -144,7 +144,7 @@
                 </executions>
                 <configuration>
                     <finalName>GLCMClustering</finalName>
-                    <appendAssemblyId>false</appendAssemblyId>
+                    <appendAssemblyId>true</appendAssemblyId>
                     <archive>
                         <manifest>
                             <mainClass>kz.ag.GLCMClusterization</mainClass>
