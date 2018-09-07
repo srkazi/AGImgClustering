@@ -13,6 +13,7 @@ import net.imglib2.img.Img;
 import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.type.Type;
+import net.imglib2.type.numeric.IntegerType;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
 import net.imglib2.view.Views;
 import org.apache.commons.math3.ml.clustering.CentroidCluster;
@@ -371,42 +372,41 @@ public class GLCMClusteringFrame extends JFrame {
 	private void gridify() {
 	    effectResize();
 	    List<Pair<AxisAlignedRectangle,Double>> res= Gridifier.gridify(gridSize,currentSelection);
+        /*
+         * almost verbatim from the MatLab code
+         */
+        double c1= 0, c2= 0, g1= 0, g2= 0;
+        int mm= res.size();
+        Set<Integer> validKeys= new HashSet<>();
+        for ( int i= 0; i < res.size(); ++i ) {
+            Pair<AxisAlignedRectangle,Double> item= res.get(i);
+            if ( item.getY().equals(Double.NaN) ) continue ;
+            validKeys.add(i);
+            double logi= Math.log10(i+1);
+            c1+= logi*logi;
+            c2+= logi;
+            g1+= logi*item.getY();
+            g2+= item.getY();
+        }
+        double a= (mm*g1-c2*g2)/(mm*c1-c2*c2);
+        double b= (g2-a*c2)/mm;
 
-	    /*
-	     * almost verbatim from the MatLab code
-	     */
-	    double c1= 0, c2= 0, g1= 0, g2= 0;
-	    int mm= res.size();
-		Set<Integer> validKeys= new HashSet<>();
-	    for ( int i= 0; i < res.size(); ++i ) {
-	    	Pair<AxisAlignedRectangle,Double> item= res.get(i);
-	    	if ( item.getY().equals(Double.NaN) ) continue ;
-	    	validKeys.add(i);
-	    	double logi= Math.log10(i+1);
-	    	c1+= logi*logi;
-	    	c2+= logi;
-	    	g1+= logi*item.getY();
-	    	g2+= item.getY();
-		}
-		double a= (mm*g1-c2*g2)/(mm*c1-c2*c2);
-	    double b= (g2-a*c2)/mm;
+        Set<Double> D= new HashSet<>(), E= new HashSet<>();
+        int nob= validKeys.size(); //FIXME:
+        double logb= Math.log10(b), noblog= Math.log10(nob*Math.PI/2);
+        for ( Integer key: validKeys ) {
+            Pair<AxisAlignedRectangle,Double> item= res.get(key);
+            double HB= item.getY();
+            D.add(2-HB/noblog+logb);
+            E.add(HB/noblog-logb);
+        }
 
-	    Set<Double> D= new HashSet<>(), E= new HashSet<>();
-	    int nob= validKeys.size(); //FIXME:
-		double logb= Math.log10(b), noblog= Math.log10(nob*Math.PI/2);
-	    for ( Integer key: validKeys ) {
-	    	Pair<AxisAlignedRectangle,Double> item= res.get(key);
-	    	double HB= item.getY();
-	    	D.add(2-HB/noblog+logb);
-	    	E.add(HB/noblog-logb);
-		}
-
-		DescriptiveStatistics stat= new DescriptiveStatistics();
-		for ( Double x: D ) stat.addValue(x);
-		double threshold= stat.getMean();
-		stat.clear();
-		for ( Double x: E ) stat.addValue(x);;
-		threshold= threshold-stat.getStandardDeviation();
+        DescriptiveStatistics stat= new DescriptiveStatistics();
+        for ( Double x: D ) stat.addValue(x);
+        double threshold= stat.getMean();
+        stat.clear();
+        for ( Double x: E ) stat.addValue(x);;
+        threshold= threshold-stat.getStandardDeviation();
 
 		//TODO: make a new copy of "currentSelection"
 		//RandomAccessibleInterval<UnsignedByteType> copy= currentSelection;
@@ -416,11 +416,14 @@ public class GLCMClusteringFrame extends JFrame {
 		if ( src == null )
 			src= currentSelection.randomAccess();
 
-		for ( Pair<AxisAlignedRectangle,Double> pr: res )
-		    if ( pr.getY().equals(Double.NaN) || pr.getY() <= threshold )
-		    	blankOut(r,pr.getX());
-		    else
-		    	drawRectangle(r,pr.getX());
+		for ( Integer key: validKeys ) {
+			Pair<AxisAlignedRectangle,Double> item= res.get(key);
+		    if ( item.getY() <= threshold ) {
+		    	blankOut(r,item.getX());
+		    	continue ;
+			}
+		    drawRectangle(r,item.getX());
+        }
 
         ImagePlus imp= ImageJFunctions.wrap(img,"result");
 		imp= new Duplicator().run(imp);

@@ -82,75 +82,44 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.jfree</groupId>
-            <artifactId>jfreechart</artifactId>
-            <version>1.0.19</version>
-        </dependency>
-        <!-- https://mvnrepository.com/artifact/org.apache.commons/commons-math3 -->
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-math3</artifactId>
-            <version>3.6.1</version>
-        </dependency>
-        <!-- https://mvnrepository.com/artifact/org.scijava/scijava-common -->
-        <dependency>
-            <groupId>org.scijava</groupId>
-            <artifactId>scijava-common</artifactId>
-            <version>2.64.0</version>
-        </dependency>
-        <dependency>
             <groupId>net.imagej</groupId>
             <artifactId>imagej</artifactId>
         </dependency>
-        <!-- https://mvnrepository.com/artifact/net.imagej/imagej-legacy -->
-        <dependency>
-            <groupId>net.imagej</groupId>
-            <artifactId>imagej-legacy</artifactId>
-            <version>0.9.1</version>
-        </dependency>
-        <!-- https://mvnrepository.com/artifact/net.imagej/imagej-legacy -->
-        <!--
-        <dependency>
-            <groupId>net.imagej</groupId>
-            <artifactId>imagej-legacy</artifactId>
-            <version>0.30.0</version>
-        </dependency>
-        -->
-        <!--
         <dependency>
             <groupId>net.imglib2</groupId>
             <artifactId>imglib2-ij</artifactId>
         </dependency>
-        -->
-        <!-- https://mvnrepository.com/artifact/net.imglib2/imglib2 -->
         <dependency>
-            <groupId>net.imglib2</groupId>
-            <artifactId>imglib2</artifactId>
-            <version>4.2.1</version>
+            <groupId>net.imagej</groupId>
+            <artifactId>imagej-legacy</artifactId>
         </dependency>
-        <!--
         <dependency>
             <groupId>net.imagej</groupId>
             <artifactId>imagej-ops</artifactId>
         </dependency>
-        -->
-        <!-- https://mvnrepository.com/artifact/net.imagej/ij -->
-        <!--
         <dependency>
-            <groupId>net.imagej</groupId>
-            <artifactId>ij</artifactId>
-            <version>1.49e</version>
+            <groupId>nu.pattern</groupId>
+            <artifactId>opencv</artifactId>
+            <version>2.4.9-4</version>
         </dependency>
-        -->
-        <!-- https://mvnrepository.com/artifact/net.imagej/imagej-common -->
-        <!--
         <dependency>
-            <groupId>net.imagej</groupId>
-            <artifactId>imagej-common</artifactId>
-            <version>0.24.4</version>
+            <groupId>org.openpnp</groupId>
+            <artifactId>opencv</artifactId>
+            <version>3.2.0-0</version>
         </dependency>
-        -->
+        <dependency>
+            <groupId>com.frontangle</groupId>
+            <artifactId>iceberg-charts</artifactId>
+            <version>1.2.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jfree</groupId>
+            <artifactId>jfreechart</artifactId>
+            <version>1.0.19</version>
+        </dependency>
+
     </dependencies>
+
     <build>
         <plugins>
             <plugin>
@@ -166,7 +135,7 @@
                 </executions>
                 <configuration>
                     <finalName>GLCMClustering</finalName>
-                    <appendAssemblyId>true</appendAssemblyId>
+                    <appendAssemblyId>false</appendAssemblyId>
                     <archive>
                         <manifest>
                             <mainClass>kz.ag.GLCMClusterization</mainClass>
