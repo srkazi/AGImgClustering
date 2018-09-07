@@ -18,7 +18,9 @@ public class Hurst {
                 maz= Math.max(maz,x[k]);
             }
         double R= maz-miz, S= stat.getStandardDeviation();
-        return R/S;
+        if ( Math.abs(S) < Utils.eps )
+            return Double.NaN;
+        return Math.log10(R/S);
     }
 }
 

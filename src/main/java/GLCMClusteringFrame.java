@@ -8,6 +8,7 @@ import net.imagej.display.OverlayService;
 import net.imagej.ops.OpService;
 import net.imglib2.*;
 import net.imglib2.Cursor;
+import net.imglib2.RandomAccess;
 import net.imglib2.img.Img;
 import net.imglib2.img.array.ArrayImgs;
 import net.imglib2.img.display.imagej.ImageJFunctions;
@@ -30,9 +31,8 @@ import javax.swing.event.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.HashMap;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
 
 public class GLCMClusteringFrame extends JFrame {
 
@@ -371,11 +371,42 @@ public class GLCMClusteringFrame extends JFrame {
 	private void gridify() {
 	    effectResize();
 	    List<Pair<AxisAlignedRectangle,Double>> res= Gridifier.gridify(gridSize,currentSelection);
+
+	    /*
+	     * almost verbatim from the MatLab code
+	     */
+	    double c1= 0, c2= 0, g1= 0, g2= 0;
+	    int mm= res.size();
+		Set<Integer> validKeys= new HashSet<>();
+	    for ( int i= 0; i < res.size(); ++i ) {
+	    	Pair<AxisAlignedRectangle,Double> item= res.get(i);
+	    	if ( item.getY().equals(Double.NaN) ) continue ;
+	    	validKeys.add(i);
+	    	double logi= Math.log10(i+1);
+	    	c1+= logi*logi;
+	    	c2+= logi;
+	    	g1+= logi*item.getY();
+	    	g2+= item.getY();
+		}
+		double a= (mm*g1-c2*g2)/(mm*c1-c2*c2);
+	    double b= (g2-a*c2)/mm;
+
+	    Set<Double> D= new HashSet<>(), E= new HashSet<>();
+	    int nob= validKeys.size(); //FIXME:
+		double logb= Math.log10(b), noblog= Math.log10(nob*Math.PI/2);
+	    for ( Integer key: validKeys ) {
+	    	Pair<AxisAlignedRectangle,Double> item= res.get(key);
+	    	double HB= item.getY();
+	    	D.add(2-HB/noblog+logb);
+	    	E.add(HB/noblog-logb);
+		}
+
 		DescriptiveStatistics stat= new DescriptiveStatistics();
-		for ( Pair<AxisAlignedRectangle,Double> pr: res )
-			stat.addValue(pr.getY());
-		double mn= stat.getMean();
-		System.out.printf("Mean-Hurst is %f\n",mn);
+		for ( Double x: D ) stat.addValue(x);
+		double threshold= stat.getMean();
+		stat.clear();
+		for ( Double x: E ) stat.addValue(x);;
+		threshold= threshold-stat.getStandardDeviation();
 
 		//TODO: make a new copy of "currentSelection"
 		//RandomAccessibleInterval<UnsignedByteType> copy= currentSelection;
@@ -385,13 +416,11 @@ public class GLCMClusteringFrame extends JFrame {
 		if ( src == null )
 			src= currentSelection.randomAccess();
 
-		for ( Pair<AxisAlignedRectangle,Double> pr: res ) {
-		    if ( pr.getY() < mn ) {
+		for ( Pair<AxisAlignedRectangle,Double> pr: res )
+		    if ( pr.getY().equals(Double.NaN) || pr.getY() <= threshold )
 		    	blankOut(r,pr.getX());
-		    	continue ;
-			}
-		    drawRectangle(r,pr.getX());
-        }
+		    else
+		    	drawRectangle(r,pr.getX());
 
         ImagePlus imp= ImageJFunctions.wrap(img,"result");
 		imp= new Duplicator().run(imp);
