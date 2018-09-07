@@ -82,18 +82,6 @@
 
     <dependencies>
         <dependency>
-            <groupId>net.imagej</groupId>
-            <artifactId>imagej</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>net.imglib2</groupId>
-            <artifactId>imglib2-ij</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>net.imagej</groupId>
-            <artifactId>imagej-ops</artifactId>
-        </dependency>
-        <dependency>
             <groupId>org.jfree</groupId>
             <artifactId>jfreechart</artifactId>
             <version>1.0.19</version>
@@ -110,24 +98,58 @@
             <artifactId>scijava-common</artifactId>
             <version>2.64.0</version>
         </dependency>
-        <!-- https://mvnrepository.com/artifact/net.imagej/ij -->
         <dependency>
             <groupId>net.imagej</groupId>
-            <artifactId>ij</artifactId>
-            <version>1.51n</version>
+            <artifactId>imagej</artifactId>
         </dependency>
-        <!-- https://mvnrepository.com/artifact/net.imagej/imagej-common -->
+        <!-- https://mvnrepository.com/artifact/net.imagej/imagej-legacy -->
         <dependency>
             <groupId>net.imagej</groupId>
-            <artifactId>imagej-common</artifactId>
-            <version>0.24.4</version>
+            <artifactId>imagej-legacy</artifactId>
+            <version>0.9.1</version>
         </dependency>
+        <!-- https://mvnrepository.com/artifact/net.imagej/imagej-legacy -->
+        <!--
+        <dependency>
+            <groupId>net.imagej</groupId>
+            <artifactId>imagej-legacy</artifactId>
+            <version>0.30.0</version>
+        </dependency>
+        -->
+        <!--
+        <dependency>
+            <groupId>net.imglib2</groupId>
+            <artifactId>imglib2-ij</artifactId>
+        </dependency>
+        -->
         <!-- https://mvnrepository.com/artifact/net.imglib2/imglib2 -->
         <dependency>
             <groupId>net.imglib2</groupId>
             <artifactId>imglib2</artifactId>
             <version>4.2.1</version>
         </dependency>
+        <!--
+        <dependency>
+            <groupId>net.imagej</groupId>
+            <artifactId>imagej-ops</artifactId>
+        </dependency>
+        -->
+        <!-- https://mvnrepository.com/artifact/net.imagej/ij -->
+        <!--
+        <dependency>
+            <groupId>net.imagej</groupId>
+            <artifactId>ij</artifactId>
+            <version>1.49e</version>
+        </dependency>
+        -->
+        <!-- https://mvnrepository.com/artifact/net.imagej/imagej-common -->
+        <!--
+        <dependency>
+            <groupId>net.imagej</groupId>
+            <artifactId>imagej-common</artifactId>
+            <version>0.24.4</version>
+        </dependency>
+        -->
     </dependencies>
     <build>
         <plugins>
