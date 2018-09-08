@@ -47,7 +47,7 @@ public class GLCMClusteringFrame extends JFrame {
 	private ImageDisplay display;
 	private OverlayService overlayService;
 	private DatasetService datasetService;
-	private RandomAccessibleInterval<UnsignedByteType> img;
+	private RandomAccessibleInterval<UnsignedByteType> img,original;
 	private RandomAccessibleInterval<UnsignedByteType> currentSelection;
 
 	private final JPanel contentPanel= new JPanel();
@@ -371,12 +371,13 @@ public class GLCMClusteringFrame extends JFrame {
 
 	private void gridify() {
 	    effectResize();
-	    List<Pair<AxisAlignedRectangle,Double>> res= Gridifier.gridify(gridSize,currentSelection);
+	    //List<Pair<AxisAlignedRectangle,Double>> res= Gridifier.gridify(gridSize,currentSelection);
+		List<Pair<AxisAlignedRectangle,Double>> res= Gridifier.gridify(gridSize,currentSelection);
         /*
          * almost verbatim from the MatLab code
          */
         double c1= 0, c2= 0, g1= 0, g2= 0;
-        int mm= res.size();
+        int mm= res.size(), nob= mm;
         Set<Integer> validKeys= new HashSet<>();
         for ( int i= 0; i < res.size(); ++i ) {
             Pair<AxisAlignedRectangle,Double> item= res.get(i);
@@ -395,7 +396,7 @@ public class GLCMClusteringFrame extends JFrame {
         double logb= Math.log10(b);
         for ( Integer key: validKeys ) {
             Pair<AxisAlignedRectangle,Double> item= res.get(key);
-            double HB= item.getY();
+            double HB= item.getY()/Math.log10(nob*Math.PI/2);
             D.add(2-HB+logb);
             E.add(HB-logb);
         }
@@ -413,7 +414,8 @@ public class GLCMClusteringFrame extends JFrame {
 		Img<UnsignedByteType> img= selectedRegion.copy();
 		RandomAccess<UnsignedByteType> r= img.randomAccess();
 		if ( src == null )
-			src= currentSelection.randomAccess();
+			//src= currentSelection.randomAccess();
+			src= selectedRegion.randomAccess();
 
 		for ( Pair<AxisAlignedRectangle,Double> item: res ) {
 		    if ( item.getY().equals(Double.NaN) || item.getY() <= threshold ) {
@@ -435,7 +437,8 @@ public class GLCMClusteringFrame extends JFrame {
 			for ( int j= rect.y0(); j <= rect.y1(); ++j ) {
 				p[0]= i; p[1]= j; p[2]= 0;
 				r.setPosition(p);
-				r.get().set(0xffffffff);
+				//r.get().set(0xffffffff);
+				r.get().set(0xeeee00);
 				//copy the contents of currentSelection's (i,j) cell into the duplicated image
 			}
 	}
@@ -747,6 +750,7 @@ public class GLCMClusteringFrame extends JFrame {
 
 	private void fuzzyKMeansClustering( int k, double fuzziness, int numIterations ) {
 		//FuzzyKMeansImageClusterer clusterer= new FuzzyKMeansImageClusterer(flag,selectedRegion,k,fuzziness,numIterations,selectedDistance,windowSize);
+		log.info("[Entering the constructor of FuzzyKMeans Clustering]");
 		FuzzyKMeansImageClusterer clusterer= new FuzzyKMeansImageClusterer(flag,currentSelection,k,fuzziness,numIterations,selectedDistance,windowSize);
 		log.info("[Launching FuzzyKMeans Clustering]");
 		try {
@@ -801,9 +805,13 @@ public class GLCMClusteringFrame extends JFrame {
 	}
 
 	private void effectResize() {
-		if ( rescaleFactor > 1 )
-			currentSelection= Views.subsample(selectedRegion,rescaleFactor,rescaleFactor);
-		else currentSelection= selectedRegion;
+		if ( rescaleFactor > 1 ) {
+			currentSelection = Views.subsample(selectedRegion, rescaleFactor, rescaleFactor);
+		}
+		else {
+			currentSelection= selectedRegion;
+		}
+		assert currentSelection != null;
 		src= currentSelection.randomAccess();
 	}
 
@@ -909,6 +917,7 @@ public class GLCMClusteringFrame extends JFrame {
 
 	public void setImg(RandomAccessibleInterval<UnsignedByteType> img) {
 		this.img = img;
+		original= img;
 	}
 
     public void setSelectedRegion(Img<UnsignedByteType> selectedRegionImg) {

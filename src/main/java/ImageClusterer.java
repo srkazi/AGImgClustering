@@ -7,6 +7,7 @@ class ImageClusterer<T extends IntegerType<T>> {
     protected int[][]g;
 
     protected ImageClusterer( final RandomAccessibleInterval<T> img ) {
+        assert img != null;
         this.img= img;
         extractMatrix();
     }
