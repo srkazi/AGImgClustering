@@ -392,13 +392,12 @@ public class GLCMClusteringFrame extends JFrame {
         double b= (g2-a*c2)/mm;
 
         Set<Double> D= new HashSet<>(), E= new HashSet<>();
-        int nob= validKeys.size(); //FIXME:
-        double logb= Math.log10(b), noblog= Math.log10(nob*Math.PI/2);
+        double logb= Math.log10(b);
         for ( Integer key: validKeys ) {
             Pair<AxisAlignedRectangle,Double> item= res.get(key);
             double HB= item.getY();
-            D.add(2-HB/noblog+logb);
-            E.add(HB/noblog-logb);
+            D.add(2-HB+logb);
+            E.add(HB-logb);
         }
 
         DescriptiveStatistics stat= new DescriptiveStatistics();
@@ -416,9 +415,8 @@ public class GLCMClusteringFrame extends JFrame {
 		if ( src == null )
 			src= currentSelection.randomAccess();
 
-		for ( Integer key: validKeys ) {
-			Pair<AxisAlignedRectangle,Double> item= res.get(key);
-		    if ( item.getY() <= threshold ) {
+		for ( Pair<AxisAlignedRectangle,Double> item: res ) {
+		    if ( item.getY().equals(Double.NaN) || item.getY() <= threshold ) {
 		    	blankOut(r,item.getX());
 		    	continue ;
 			}

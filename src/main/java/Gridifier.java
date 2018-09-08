@@ -4,7 +4,6 @@ import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 public class Gridifier {
