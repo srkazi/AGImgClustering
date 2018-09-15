@@ -36,7 +36,7 @@ public class Gridifier {
         for ( int i= 0; i < (int)(n[0]/gridSize); ++i )
             for ( int j= 0; j < (int)(n[1]/gridSize); ++j ) {
                 res.add(new Pair<>(new AxisAlignedRectangle(i*gridSize,j*gridSize,(i+1)*gridSize-1,(j+1)*gridSize-1),
-                        Hurst.apply(windows[i][j])));
+                        Hurst.estimate(windows[i][j])));
             }
         return res;
     }
