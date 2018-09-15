@@ -52,7 +52,7 @@ public class Hurst {
         double R= maz-miz, S= stat.getStandardDeviation();
         //if ( Math.abs(R) < 1e-13 )
           //  return Double.NaN;
-        return Math.log10(R/S);
+        return R/S;
     }
 
     private static double calc_by_chunks( final int []time_series, final int left, final int right, final int block_size ) {
