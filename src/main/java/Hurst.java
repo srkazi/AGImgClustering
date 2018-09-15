@@ -11,6 +11,9 @@ import org.apache.commons.math3.util.Pair;
 import java.util.Arrays;
 
 public class Hurst {
+    private static double []x= new double[1<<20], observedExpectations= new double[1<<19], prescribedDistances= new double[1<<19];
+    private static int []tseries= new int[1<<20];
+    public static final int SMALLEST_CHUNK_SIZE= 7;
     public static double apply( int [][]window ) {
         int m= window.length, n= window[0].length, i,j,k= 0;
         double []x= new double[m*n];
@@ -35,14 +38,14 @@ public class Hurst {
     public static double apply( int []nums ) {
         return apply(nums,0,nums.length-1);
     }
-    public static double apply( int []nums, int left, int right ) {
+    public static double apply( final int []nums, final int left, final int right ) {
         int m= nums.length, i,k= 0;
-        double []x= new double[right-left+1];
         DescriptiveStatistics stat= new DescriptiveStatistics();
         for ( i= left; i <= right; ++i )
             stat.addValue(x[k++]= nums[i]);
+        assert k == right-left+1;
         double mn= stat.getMean(), miz= Double.MAX_VALUE, maz= Double.MIN_VALUE;
-        for ( k= 0; k < m; ++k ) {
+        for ( k= 0; k < right-left+1 ; ++k ) {
                 x[k]-= mn;
                 if ( k >= 1 )
                     x[k]+= x[k-1];
@@ -57,36 +60,42 @@ public class Hurst {
 
     private static double calc_by_chunks( final int []time_series, final int left, final int right, final int block_size ) {
         DescriptiveStatistics stat= new DescriptiveStatistics();
+        //System.out.printf("Inside calc_by_chunks with series of length %d\n",right-left+1);
         for ( int i= left, j; (j= i+block_size-1) <= right; i+= block_size )
             stat.addValue(apply(time_series,i,j));
+        //System.out.printf("[done]Inside calc_by_chunks with series of length %d\n",right-left+1);
         return stat.getMean();
     }
 
     public static double estimate( final int [][]window ) {
         int m= window.length, n= window[0].length,i,j,k;
-        int []time_series= new int[m*n];
+        //int []time_series= new int[m*n];
         for ( k= 0, i= 0; i < m; ++i )
             for ( j= 0; j < n; ++j )
-                time_series[k++]= window[i][j];
-        return estimate(time_series,0,m*n-1);
+                tseries[k++]= window[i][j];
+        //System.out.printf("Inside estimate with %d %d window\n",m,n);
+        return estimate(tseries,0,m*n-1);
     }
 
     public static double estimate( final int []time_series, final int left, final int right ) {
-        int i= 0,j,k,n= right-left+1, m= n/5-3+1;
-        final double []observedExpectations= new double[m];
-        for ( k= 3; k <= n/5; ++k ) {
-            observedExpectations[i++]= calc_by_chunks(time_series,left,right,k);
+        int i= 0,j,k,n= right-left+1;
+        final int m= 9-5+1;
+        System.out.println("m= "+m);
+        //System.out.printf("[] Inside estimate with %d %d window\n",m,n);
+        //final double []observedExpectations= new double[m];
+        for ( k= 5; k <= 9; ++k ) {
+            observedExpectations[i++]= Math.log(calc_by_chunks(time_series,left,right,k));
         }
-        assert i == observedExpectations.length;
+        //System.out.printf("(%d) Inside estimate with %d observations\n",i,observedExpectations.length);
 
         MultivariateJacobianFunction model= new MultivariateJacobianFunction() {
             @Override
             public Pair<RealVector, RealMatrix> value( final RealVector point ) {
                 double logC= point.getEntry(0), HH= point.getEntry(1);
-                RealVector value= new ArrayRealVector(observedExpectations.length);
-                RealMatrix jacobian= new Array2DRowRealMatrix(observedExpectations.length,2);
-                for ( int t= 0; t < observedExpectations.length; ++t ) {
-                    double L= Math.log(t+3);
+                RealVector value= new ArrayRealVector(m);
+                RealMatrix jacobian= new Array2DRowRealMatrix(m,2);
+                for ( int t= 0; t < m; ++t ) {
+                    double L= Math.log(t+5);
                     double modelI= Math.pow(observedExpectations[t]-logC-HH*L,2);
                     value.setEntry(t,modelI);
                     //link: http://commons.apache.org/proper/commons-math/userguide/leastsquares.html
@@ -97,16 +106,20 @@ public class Hurst {
             }
         };
 
-        double []prescribedDistances= new double[observedExpectations.length];
+        double []prescribedDistances= new double[m];
         Arrays.fill(prescribedDistances,0.00);
+        for ( i= 0; i < m; ++i ) prescribedDistances[i]= 0;
+        double []initial= {-1.00,0.50};
 
         LeastSquaresProblem problem= new LeastSquaresBuilder().
-                                     start( new double[] {0.00,0.50} ).
+                                     start(initial).
                                      model(model).
                                      target(prescribedDistances).
                                      lazyEvaluation(false).
-                                     maxEvaluations(1000).
-                                     maxIterations(1000).build();
+                                     maxEvaluations(100).
+                                     maxIterations(64).build();
+
+        System.out.printf("Launching the optimizer");
         LeastSquaresOptimizer.Optimum optimum= new LevenbergMarquardtOptimizer().optimize(problem);
         double logC= optimum.getPoint().getEntry(0), HH= optimum.getPoint().getEntry(1);
         System.out.println(String.format("C= %.2f, H= %.2f",Math.exp(logC),HH));

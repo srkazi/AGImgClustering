@@ -445,6 +445,7 @@ public class GLCMClusteringFrame extends JFrame {
 
 	private void drawRectangle( final RandomAccess<UnsignedByteType> r, final AxisAlignedRectangle rect ) {
 	    //TODO
+		System.out.println("[Enter] Draw Rectanlge");
 		long []p= new long[3], q= new long[3];
 		for ( int i= rect.x0(); i <= rect.x1(); ++i )
 			for ( int j= rect.y0(); j <= rect.y1(); ++j ) {
@@ -455,6 +456,7 @@ public class GLCMClusteringFrame extends JFrame {
 				r.get().set(src.get());
 				//copy the contents of currentSelection's (i,j) cell into the duplicated image
 			}
+		System.out.println("[Out] Draw Rectanlge");
 	}
 
 	private void selectGridSize() {

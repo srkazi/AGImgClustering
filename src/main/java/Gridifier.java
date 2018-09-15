@@ -35,6 +35,7 @@ public class Gridifier {
         List<Pair<AxisAlignedRectangle,Double>>res= new ArrayList<>();
         for ( int i= 0; i < (int)(n[0]/gridSize); ++i )
             for ( int j= 0; j < (int)(n[1]/gridSize); ++j ) {
+                System.out.printf("%d %d, %d %d\n",i,j,n[0],n[1]);
                 res.add(new Pair<>(new AxisAlignedRectangle(i*gridSize,j*gridSize,(i+1)*gridSize-1,(j+1)*gridSize-1),
                         Hurst.estimate(windows[i][j])));
             }
