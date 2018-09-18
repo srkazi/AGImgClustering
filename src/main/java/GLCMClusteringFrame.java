@@ -370,12 +370,13 @@ public class GLCMClusteringFrame extends JFrame {
 	}
 
 	private void gridify() {
+	    gridify2();
+	    return ;
+	    /*
 	    effectResize();
 	    //List<Pair<AxisAlignedRectangle,Double>> res= Gridifier.gridify(gridSize,currentSelection);
 		List<Pair<AxisAlignedRectangle,Double>> res= Gridifier.gridify(gridSize,currentSelection);
-        /*
-         * almost verbatim from the MatLab code
-         */
+		p
         double c1= 0, c2= 0, g1= 0, g2= 0;
         int mm= res.size(), nob= mm;
         Set<Integer> validKeys= new HashSet<>();
@@ -396,9 +397,10 @@ public class GLCMClusteringFrame extends JFrame {
         double logb= Math.log10(b);
         for ( Integer key: validKeys ) {
             Pair<AxisAlignedRectangle,Double> item= res.get(key);
-            double HB= item.getY()/Math.log10(nob*Math.PI/2);
-            D.add(2-HB+logb);
-            E.add(HB-logb);
+            //double HB= item.getY()/Math.log10(nob*Math.PI/2);
+            double HB= item.getY();
+            D.add(2-HB);
+            E.add(HB);
         }
 
         DescriptiveStatistics stat= new DescriptiveStatistics();
@@ -419,6 +421,61 @@ public class GLCMClusteringFrame extends JFrame {
 
 		for ( Pair<AxisAlignedRectangle,Double> item: res ) {
 		    if ( item.getY().equals(Double.NaN) || item.getY() <= threshold ) {
+		    	blankOut(r,item.getX());
+		    	continue ;
+			}
+		    drawRectangle(r,item.getX());
+        }
+
+        ImagePlus imp= ImageJFunctions.wrap(img,"result");
+		imp= new Duplicator().run(imp);
+		imp.show();
+		//IJ.run("Stack to RGB", "");
+		*/
+	}
+
+	private void gridify2() {
+	    effectResize();
+	    //List<Pair<AxisAlignedRectangle,Double>> res= Gridifier.gridify(gridSize,currentSelection);
+		List<Pair<AxisAlignedRectangle,Double>> res= new BruteForceHurst(currentSelection,gridSize).gridify();
+        /*
+         * almost verbatim from the MatLab code
+         */
+        double c1= 0, c2= 0, g1= 0, g2= 0;
+        int mm= res.size(), nob= mm;
+        Set<Integer> validKeys= new HashSet<>();
+        for ( int i= 0; i < res.size(); ++i ) {
+            Pair<AxisAlignedRectangle,Double> item= res.get(i);
+            if ( item.getY().equals(Double.NaN) ) continue ;
+            validKeys.add(i);
+        }
+
+        Set<Double> D= new HashSet<>(), E= new HashSet<>();
+        for ( Integer key: validKeys ) {
+            Pair<AxisAlignedRectangle,Double> item= res.get(key);
+            double HB= item.getY();
+            D.add(2-HB);
+            E.add(HB);
+        }
+
+        DescriptiveStatistics stat= new DescriptiveStatistics();
+        for ( Double x: D ) stat.addValue(x);
+        double threshold= stat.getMean();
+        stat.clear();
+        for ( Double x: E ) stat.addValue(x);;
+        threshold= threshold-stat.getStandardDeviation();
+
+		//TODO: make a new copy of "currentSelection"
+		//RandomAccessibleInterval<UnsignedByteType> copy= currentSelection;
+		//Img<UnsignedByteType> img= ArrayImgs.unsignedBytes(m,n, 3);
+		Img<UnsignedByteType> img= selectedRegion.copy();
+		RandomAccess<UnsignedByteType> r= img.randomAccess();
+		if ( src == null )
+			//src= currentSelection.randomAccess();
+			src= selectedRegion.randomAccess();
+
+		for ( Pair<AxisAlignedRectangle,Double> item: res ) {
+		    if ( item.getY().equals(Double.NaN) || 2-item.getY() <= threshold ) {
 		    	blankOut(r,item.getX());
 		    	continue ;
 			}
