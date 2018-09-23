@@ -192,7 +192,7 @@ public class BasicPreprocessor implements HaralickImageProcessor {
                 presentPairs.add(new Pair<>(nrw-rw,g[rw][cl]));
             }
 
-        /* along main diagonal */
+            /*
         for ( int i= 0; i < m; ++i ) {
             for ( rw= i, cl= 0; cl < n && rw >= 0; rw= nrw, cl= ncl ) {
                 for ( nrw= rw, ncl= cl; nrw >= 0 && ncl < n && g[nrw][ncl] == g[rw][cl]; --nrw, ++ncl ) ;
@@ -207,8 +207,6 @@ public class BasicPreprocessor implements HaralickImageProcessor {
                 presentPairs.add(new Pair<>(ncl-cl,g[rw][cl]));
             }
         }
-
-        /* along the auxiliary diagonal */
         for ( int i= m-1; i >= 0; --i ) {
             for ( rw= i, cl= 0; rw < m && cl < n; rw= nrw, cl= ncl ) {
                 for ( nrw= rw, ncl= cl; nrw < m && ncl < n && g[nrw][ncl] == g[rw][cl]; ++nrw, ++ncl ) ;
@@ -223,6 +221,7 @@ public class BasicPreprocessor implements HaralickImageProcessor {
                 presentPairs.add(new Pair<>(ncl-cl,g[rw][cl]));
             }
         }
+        */
     }
 
     private void calculateEntropies() {

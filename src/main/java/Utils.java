@@ -49,11 +49,20 @@ public class Utils {
                 //System.out.println(String.format("[%d,%d] sliding window for (%d,%d)",m,n,i,j));
                 for ( int x= 0, ni= i-sz; ni <= i+sz; ++ni, ++x )
                     for ( int y= 0, nj= j-sz; nj <= j+sz; ++nj, ++y ) {
-                        assert x < window.length && y < window[0].length;
+                        //System.out.printf("x= %d, y= %d, m= %d, n= %d\n",x,y,m,n);
+                        //assert x < window.length && y < window[0].length: String.format("[%d %d] is not in [%d %d]",x,y,m,n);
                         //window[x][y] = 0 <= ni && ni < m && 0 <= nj && nj < n ? g[ni][nj] : 0;
-                        window[x][y] = 0 <= ni && ni < Math.min(m,DEFAULT_SIZE) && 0 <= nj && nj < Math.min(n,DEFAULT_SIZE) ? g[ni][nj] : 0;
+                        try {
+                            window[x][y] = 0 <= ni && ni < Math.min(m, DEFAULT_SIZE) && 0 <= nj && nj < Math.min(n, DEFAULT_SIZE) ? g[ni][nj] : 0;
+                        } catch ( Exception e ) {
+                            System.out.println(e.getMessage());
+                            e.printStackTrace();
+                            throw new RuntimeException(e);
+                        }
                     }
+                //System.out.println("[entering] calcFeatures()");
                 AnnotatedPixelWrapper wrapper= new AnnotatedPixelWrapper(new Pair<>(i,j),calcFeatures(flag,window));
+                //System.out.println("[done] calcFeatures()");
                 res.add(wrapper);
             }
         System.out.println("Annotation complete");
