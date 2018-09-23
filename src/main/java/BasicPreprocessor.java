@@ -187,7 +187,7 @@ public class BasicPreprocessor implements HaralickImageProcessor {
         /* col-wise second */
         for ( cl= 0; cl < n; ++cl )
             for ( rw= 0; rw < m; rw= nrw ) {
-                for ( nrw= rw+1; nrw < n && g[rw][cl] == g[nrw][cl]; ++nrw ) ;
+                for ( nrw= rw+1; nrw < m && g[rw][cl] == g[nrw][cl]; ++nrw ) ;
                 ++seriesLengthAndBrightness[nrw-rw][g[rw][cl]];
                 presentPairs.add(new Pair<>(nrw-rw,g[rw][cl]));
             }
