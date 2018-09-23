@@ -67,8 +67,11 @@ public class BruteForceHurst {
         //http://citeseerx.ist.psu.edu/viewdoc/download;jsessionid=56CC42C1007A4D15D127E103BA001462?doi=10.1.1.137.207&rep=rep1&type=pdf
         //for ( int t= 3; t <= 10 && (1 << t) <= n; ++t )
             //observedExpectations.put(1<<t,Math.log(calcByChunks(1<<t)));
-        for ( int t= 16; t <= n; ++t )
-            observedExpectations.put(t,Math.log(calcByChunks(t)));
+        for ( int t= 16; t <= n; ++t ) {
+            Double hh= calcByChunks(t);
+            if ( hh.equals(Double.NaN) ) continue ;
+            observedExpectations.put(t, Math.log(hh));
+        }
 
         //link: http://commons.apache.org/proper/commons-math/userguide/leastsquares.html
         /*
@@ -112,15 +115,20 @@ public class BruteForceHurst {
         for ( Map.Entry<Integer,Double> entry: observedExpectations.entrySet() )
             data[k++]= new double[]{Math.log(entry.getKey()),entry.getValue()};
         simpleRegression.addData(data);
-        System.out.println(String.format("C= %.2f, H= %.2f",Math.exp(simpleRegression.getIntercept()),simpleRegression.getSlope()));
-        return simpleRegression.getSlope();
+        double ans= Math.min(1.00,Math.max(0,simpleRegression.getSlope()));
+        System.out.println(String.format("C= %.2f, H= %.2f",Math.exp(simpleRegression.getIntercept()),ans));
+        return ans;
     }
 
-    private double calcByChunks( int chunk_size ) {
+    private Double calcByChunks( int chunk_size ) {
         double sum= 0;
         int k= 0;
         for ( int i= 0, j; (j= i+chunk_size-1) < n; i+= chunk_size ) {
-            sum += Hurst.apply(series, i, j); ++k;
+            Double h= Hurst.apply(series, i, j);
+            if ( h.equals(Double.NaN) )
+                return Double.NaN;
+            sum+= h;
+            ++k;
         }
         return sum/k;
     }

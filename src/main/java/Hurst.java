@@ -41,8 +41,13 @@ public class Hurst {
     public static double apply( final int []nums, final int left, final int right ) {
         int m= nums.length, i,k= 0;
         DescriptiveStatistics stat= new DescriptiveStatistics();
-        for ( i= left; i <= right; ++i )
-            stat.addValue(x[k++]= nums[i]);
+        boolean allEqual= true ;
+        for ( i= left; i <= right; ++i ) {
+            stat.addValue(x[k++] = nums[i]);
+            if ( Math.abs(nums[i]-nums[left]) > 1e-13 )
+                allEqual= false;
+        }
+        if ( allEqual ) return Double.NaN;
         assert k == right-left+1;
         double mn= stat.getMean(), miz= Double.MAX_VALUE, maz= Double.MIN_VALUE;
         for ( k= 0; k < right-left+1 ; ++k ) {
@@ -53,8 +58,6 @@ public class Hurst {
                 maz= Math.max(maz,x[k]);
             }
         double R= maz-miz, S= stat.getStandardDeviation();
-        //if ( Math.abs(R) < 1e-13 )
-          //  return Double.NaN;
         return R/S;
     }
 

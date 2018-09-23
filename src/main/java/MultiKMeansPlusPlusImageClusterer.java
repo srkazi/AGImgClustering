@@ -20,6 +20,7 @@ public class MultiKMeansPlusPlusImageClusterer extends ImageClusterer<UnsignedBy
     public MultiKMeansPlusPlusImageClusterer( int flag, final RandomAccessibleInterval<UnsignedByteType> img, int k, int numIters, int trials, DistanceMeasure measure, int sz ) {
         super(img);
         mask= flag; this.sz= sz;
+        System.out.println("inside multi-k-means constructor");
         multiKMeansPlusPlusClusterer= new MultiKMeansPlusPlusClusterer<>(new KMeansPlusPlusClusterer<>(k,numIters,measure==null?new EuclideanDistance():measure),trials);
     }
 

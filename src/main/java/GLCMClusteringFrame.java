@@ -779,6 +779,7 @@ public class GLCMClusteringFrame extends JFrame {
 		RealRect r= overlayService.getSelectionBounds(display);
 		*/
 		//MultiKMeansPlusPlusImageClusterer clusterer= new MultiKMeansPlusPlusImageClusterer(flag,selectedRegion,k, numIters, trials,selectedDistance,windowSize);
+		log.info("inside multiKMeansPPClustering");
 		MultiKMeansPlusPlusImageClusterer clusterer= new MultiKMeansPlusPlusImageClusterer(flag,currentSelection,k, numIters, trials,selectedDistance,windowSize);
 		log.info("[Launching Multi-KMeans Clustering]");
 		try {
@@ -864,12 +865,22 @@ public class GLCMClusteringFrame extends JFrame {
 	}
 
 	private void effectResize() {
+		log.info("entering rescale procedure with "+rescaleFactor);
 		if ( rescaleFactor > 1 ) {
-			currentSelection = Views.subsample(selectedRegion, rescaleFactor, rescaleFactor);
+			try {
+				currentSelection = Views.subsample(selectedRegion, rescaleFactor, rescaleFactor);
+			} catch ( Exception e ) {
+				log.info(e.getMessage());
+				e.printStackTrace();
+				throw new RuntimeException(e);
+			}
 		}
 		else {
 			currentSelection= selectedRegion;
 		}
+		log.info("effected the resize with "+rescaleFactor);
+		if ( currentSelection == null )
+			log.info("currentSelection is null");
 		assert currentSelection != null;
 		src= currentSelection.randomAccess();
 	}

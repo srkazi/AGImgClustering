@@ -4,6 +4,8 @@ import java.util.*;
 import net.imglib2.RandomAccessibleInterval;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 
+import javax.xml.soap.Text;
+
 public class BasicPreprocessor implements HaralickImageProcessor {
 
     private int m, n, mi, mx, H;
@@ -17,8 +19,10 @@ public class BasicPreprocessor implements HaralickImageProcessor {
     private DescriptiveStatistics statsPXY= new DescriptiveStatistics();
     private DescriptiveStatistics statsPij= new DescriptiveStatistics();
     private int [][]g;
+    private int [][]seriesLengthAndBrightness;
+    private Set<Pair<Integer,Integer>> presentPairs= new HashSet<>();
 
-    private static final int W= 16;
+    private static final int W= 64;
 
     public <T extends MatrixTraverser>
     BasicPreprocessor( final RandomAccessibleInterval<Integer> img, Class<T> traverserImplClass ) {
@@ -75,6 +79,8 @@ public class BasicPreprocessor implements HaralickImageProcessor {
                 g[i][j]= Math.min(g[i][j],W-1);
             }
         H= W;
+
+        seriesLengthAndBrightness= new int[Math.max(m,n)+1][H+1];
 
         counts = new double[H][H];
         probabilities = new double[H][H];
@@ -165,6 +171,58 @@ public class BasicPreprocessor implements HaralickImageProcessor {
         }
         sigmax= Math.sqrt(sigmax);
         sigmay= Math.sqrt(sigmay);
+
+        /*
+         * Calculate series lengths
+         */
+        /* row-wise first */
+        int rw, cl, nrw, ncl, nnrw, nncl;
+        for ( rw= 0; rw < m; ++rw )
+            for ( cl= 0; cl < n; cl= ncl ) {
+                for ( ncl= cl+1; ncl < n && g[rw][cl] == g[rw][ncl]; ++ncl ) ;
+                ++seriesLengthAndBrightness[ncl-cl][g[rw][cl]];
+                presentPairs.add(new Pair<>(ncl-cl,g[rw][cl]));
+            }
+
+        /* col-wise second */
+        for ( cl= 0; cl < n; ++cl )
+            for ( rw= 0; rw < m; rw= nrw ) {
+                for ( nrw= rw+1; nrw < n && g[rw][cl] == g[nrw][cl]; ++nrw ) ;
+                ++seriesLengthAndBrightness[nrw-rw][g[rw][cl]];
+                presentPairs.add(new Pair<>(nrw-rw,g[rw][cl]));
+            }
+
+        /* along main diagonal */
+        for ( int i= 0; i < m; ++i ) {
+            for ( rw= i, cl= 0; cl < n && rw >= 0; rw= nrw, cl= ncl ) {
+                for ( nrw= rw, ncl= cl; nrw >= 0 && ncl < n && g[nrw][ncl] == g[rw][cl]; --nrw, ++ncl ) ;
+                ++seriesLengthAndBrightness[ncl-cl][g[rw][cl]];
+                presentPairs.add(new Pair<>(ncl-cl,g[rw][cl]));
+            }
+        }
+        for ( int j= 1; j < n; ++j ) {
+            for ( rw= m-1, cl= j; rw >= 0 && cl < n; rw= nrw, cl= ncl ) {
+                for ( nrw= rw, ncl= cl; nrw >= 0 && ncl < n && g[nrw][ncl] == g[rw][cl]; --nrw, ++ncl ) ;
+                ++seriesLengthAndBrightness[ncl-cl][g[rw][cl]];
+                presentPairs.add(new Pair<>(ncl-cl,g[rw][cl]));
+            }
+        }
+
+        /* along the auxiliary diagonal */
+        for ( int i= m-1; i >= 0; --i ) {
+            for ( rw= i, cl= 0; rw < m && cl < n; rw= nrw, cl= ncl ) {
+                for ( nrw= rw, ncl= cl; nrw < m && ncl < n && g[nrw][ncl] == g[rw][cl]; ++nrw, ++ncl ) ;
+                ++seriesLengthAndBrightness[ncl-cl][g[rw][cl]];
+                presentPairs.add(new Pair<>(ncl-cl,g[rw][cl]));
+            }
+        }
+        for ( int j= 1; j < n; ++j ) {
+            for ( rw= 0, cl= j; rw < m && cl < n; rw= nrw, cl= ncl ) {
+                for ( nrw= rw, ncl = cl; nrw < m && ncl < n && g[nrw][ncl] == g[rw][cl]; ++nrw, ++ncl ) ;
+                ++seriesLengthAndBrightness[ncl-cl][g[rw][cl]];
+                presentPairs.add(new Pair<>(ncl-cl,g[rw][cl]));
+            }
+        }
     }
 
     private void calculateEntropies() {
@@ -290,6 +348,67 @@ public class BasicPreprocessor implements HaralickImageProcessor {
          * FIXME: we are only putting 0.00, for now
          */
         summary.put(TextureFeatures.MAXIMAL_CORRELATION_COEFFICIENT,0.00);
+
+        double Total= 0;
+        for ( k= 0; k <= m && k <= n; ++k )
+            for ( int t= 0; t <= H; ++t )
+                Total+= seriesLengthAndBrightness[k][t];
+        /*
+         * 15. Inverse Moment
+         */
+        double T14= 0;
+        for ( Pair<Integer,Integer> pr: presentPairs ) {
+            k= pr.getX(); int t= pr.getY();
+            T14+= (seriesLengthAndBrightness[k][t]+0.00)/k/k;
+        }
+        summary.put(TextureFeatures.INVERSE_DIFFERENT_MOMENT,T14/Total);
+
+        /*
+         * 16. Moments
+         */
+        double T15= 0;
+        for ( Pair<Integer,Integer> pr: presentPairs ) {
+            k = pr.getX();
+            int t = pr.getY();
+            T15 += k * k * (seriesLengthAndBrightness[k][t] + 0.00);
+        }
+        summary.put(TextureFeatures.MOMENT,T15/Total);
+
+        /*
+         * 17. Non-homogeneity of Brightness
+         */
+        double T16= 0;
+        for ( Pair<Integer,Integer> pr: presentPairs ) {
+            k = pr.getX();
+            int t = pr.getY();
+            T16 += Math.pow(seriesLengthAndBrightness[k][t], 2);
+        }
+        summary.put(TextureFeatures.NON_HOMOGENEITY_OF_BRIGHTNESS,T16/Total);
+
+        /*
+         * 18. Non-homogeneity of Series Lengths
+         */
+        double T17= 0;
+        /*
+        for ( int t= 0; t <= H; ++t ) {
+            double ss= 0.00;
+            for ( k= 0; k <= m && k <= n; ++k )
+                ss+= seriesLengthAndBrightness[k][t];
+            T17+= Math.pow(ss,2);
+        }
+        */
+        summary.put(TextureFeatures.NON_HOMOGENEITY_OF_SERIES_LENGTH,T17/Total);
+
+        /*
+         * 19. Share of the Image in Runs
+         */
+        double T18= 0.00;
+        for ( Pair<Integer,Integer> pr: presentPairs ) {
+            k = pr.getX();
+            int t = pr.getY();
+            T18 += seriesLengthAndBrightness[k][t] * k;
+        }
+        summary.put(TextureFeatures.SHARE_OF_IMAGE_IN_SERIES,Total/T18);
 
         assert summary.size() == TextureFeatures.values().length;
     }
