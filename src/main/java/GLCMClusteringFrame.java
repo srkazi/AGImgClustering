@@ -490,12 +490,13 @@ public class GLCMClusteringFrame extends JFrame {
 
 	private void blankOut( final RandomAccess<UnsignedByteType> r, final AxisAlignedRectangle rect ) {
 		long []p= new long[3];
+		String []colors= {"00293C","1E656D","F1F3CE","F62A00","B78338","57233A","00142F","0359AE","2A6078"};
 		for ( int i= rect.x0(); i <= rect.x1(); ++i )
 			for ( int j= rect.y0(); j <= rect.y1(); ++j ) {
 				p[0]= i; p[1]= j; p[2]= 0;
 				r.setPosition(p);
 				//r.get().set(0xffffffff);
-				r.get().set(0xeeee00);
+				r.get().set(0xb78338);
 				//copy the contents of currentSelection's (i,j) cell into the duplicated image
 			}
 	}
@@ -780,10 +781,12 @@ public class GLCMClusteringFrame extends JFrame {
 		*/
 		//MultiKMeansPlusPlusImageClusterer clusterer= new MultiKMeansPlusPlusImageClusterer(flag,selectedRegion,k, numIters, trials,selectedDistance,windowSize);
 		log.info("inside multiKMeansPPClustering");
+		assert currentSelection != null: String.format("currentSelection is null");
 		MultiKMeansPlusPlusImageClusterer clusterer= new MultiKMeansPlusPlusImageClusterer(flag,currentSelection,k, numIters, trials,selectedDistance,windowSize);
 		log.info("[Launching Multi-KMeans Clustering]");
 		try {
             List<CentroidCluster<AnnotatedPixelWrapper>> list = clusterer.cluster();
+            assert list != null: String.format("list is empty that came from cluster");
             drawResult(list);
             log.info("[DONE Multi-KMeans Clustering]");
         } catch ( Exception e ) {

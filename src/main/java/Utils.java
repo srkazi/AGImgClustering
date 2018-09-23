@@ -50,7 +50,7 @@ public class Utils {
                 for ( int x= 0, ni= i-sz; ni <= i+sz; ++ni, ++x )
                     for ( int y= 0, nj= j-sz; nj <= j+sz; ++nj, ++y ) {
                         //System.out.printf("x= %d, y= %d, m= %d, n= %d\n",x,y,m,n);
-                        //assert x < window.length && y < window[0].length: String.format("[%d %d] is not in [%d %d]",x,y,m,n);
+                        assert x < window.length && y < window[0].length: String.format("[%d %d] is not in [%d %d]",x,y,m,n);
                         //window[x][y] = 0 <= ni && ni < m && 0 <= nj && nj < n ? g[ni][nj] : 0;
                         try {
                             window[x][y] = 0 <= ni && ni < Math.min(m, DEFAULT_SIZE) && 0 <= nj && nj < Math.min(n, DEFAULT_SIZE) ? g[ni][nj] : 0;

@@ -123,7 +123,7 @@ public class ConcurrentPreprocessor implements HaralickImageProcessor {
     private DescriptiveStatistics statsPij= new DescriptiveStatistics();
     private int [][]g;
 
-    private static final int W= 64;
+    private static final int W= 8;
 
     public <T extends MatrixTraverser>
     ConcurrentPreprocessor( final RandomAccessibleInterval<Integer> img, Class<T> traverserImplClass ) {
@@ -652,7 +652,7 @@ public class ConcurrentPreprocessor implements HaralickImageProcessor {
             System.out.println(e.getMessage());
             throw new RuntimeException(e);
         }
-
+        //System.out.printf("summary.size()= %d, #features= %d\n",summary.size(),TextureFeatures.values().length);
 
         assert summary.size() == TextureFeatures.values().length: "Not all textural features have been computed";
     }
