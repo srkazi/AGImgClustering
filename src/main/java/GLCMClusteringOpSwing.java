@@ -16,13 +16,17 @@ import ij.process.ImageProcessor;
 import net.imagej.Data;
 import net.imagej.DatasetService;
 import net.imagej.ImgPlus;
+import net.imagej.axis.Axes;
+import net.imagej.axis.AxisType;
 import net.imagej.display.ImageDisplay;
 import net.imagej.display.OverlayService;
 import net.imagej.ops.AbstractOp;
 import net.imagej.ops.Op;
 import net.imagej.ops.OpService;
+import net.imagej.ops.Ops;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.img.Img;
+import net.imglib2.img.ImgFactory;
 import net.imglib2.img.display.imagej.ImageJFunctions;
 import net.imglib2.type.numeric.integer.ByteType;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
@@ -106,9 +110,20 @@ public class GLCMClusteringOpSwing implements Command {
 			dialog.setDisplay(display);
 			dialog.setImg(img);
 			dialog.setOverlayService(overlayService);
-			ImagePlus selectedRegionImp = new Duplicator().run(input);
-			Img<UnsignedByteType> selectedRegionImg = ImageJFunctions.wrapByte(selectedRegionImp);
-			dialog.setSelectedRegion(selectedRegionImg);
+			if ( input != null ) {
+				ImagePlus selectedRegionImp = new Duplicator().run(input);
+				Img<UnsignedByteType> selectedRegionImg = ImageJFunctions.wrapByte(selectedRegionImp);
+				dialog.setSelectedRegion(selectedRegionImg);
+			}
+			else {
+				assert input == null: "``input'' parameter is null";
+				/*
+				AxisType[] axisTypes = new AxisType[] { Axes.X, Axes.Y, Axes.TIME };
+				ImagePlus selectedRegionImp = new ImgPlus<UnsignedByteType>(Img)
+			    Img<UnsignedByteType> selectedRegionImg = ImageJFunctions.wrapByte(selectedRegionImp);
+				dialog.setSelectedRegion(selectedRegionImg);
+				*/
+			}
 			/**
 			 * enables ROI (i.e. selection)
 			 */
