@@ -1,7 +1,9 @@
 import charts.ClusterSizePieChart;
+import concurrency.HadamardTransform01;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.plugin.Duplicator;
+import model.RealVector2Clusterable;
 import net.imagej.DatasetService;
 import net.imagej.display.ImageDisplay;
 import net.imagej.display.OverlayService;
@@ -16,8 +18,11 @@ import net.imglib2.type.Type;
 import net.imglib2.type.numeric.IntegerType;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
 import net.imglib2.view.Views;
+import org.apache.commons.math3.linear.RealVector;
 import org.apache.commons.math3.ml.clustering.CentroidCluster;
 import org.apache.commons.math3.ml.clustering.Cluster;
+import org.apache.commons.math3.ml.clustering.KMeansPlusPlusClusterer;
+import org.apache.commons.math3.ml.clustering.MultiKMeansPlusPlusClusterer;
 import org.apache.commons.math3.ml.distance.*;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.scijava.app.StatusService;
@@ -188,6 +193,71 @@ public class GLCMClusteringFrame extends JFrame {
 		this.setJMenuBar(bar);
 	}
 
+	private void drawResultWavelet( List<? extends Cluster<RealVector2Clusterable>> list ) {
+    	//ImgFactory<UnsignedByteType> imgFactory= new ArrayImgFactory<>();
+		//Img<UnsignedByteType> img= imgFactory.create( new int[]{Utils.DEFAULT_SIZE,Utils.DEFAULT_SIZE,3}, new UnsignedByteType() );
+        int m= 0, n= 0;
+        for ( Cluster<RealVector2Clusterable> cl: list )
+            for ( RealVector2Clusterable awp: cl.getPoints() ) {
+                m= Math.max(awp.getX()+1,m);
+                n= Math.max(awp.getY()+1,n);
+            }
+        System.out.printf("m= %d, n= %d\n",m,n);
+		Img<UnsignedByteType> img= ArrayImgs.unsignedBytes(m*gridSize,n*gridSize, 3);
+		RandomAccess<UnsignedByteType> r= img.randomAccess();
+		String []colors= {"00293C","1E656D","F1F3CE","F62A00","B78338","57233A","00142F","0359AE","2A6078"};
+		int currentColorIdx= 0;
+		long []p= new long[3];
+		Map<String,Object[]> map= new HashMap<>();
+		double total= 0;
+		for ( Cluster<RealVector2Clusterable> cl: list )
+			total+= cl.getPoints().size();
+		for ( Cluster<RealVector2Clusterable> cl: list ) {
+			List<RealVector2Clusterable> points= cl.getPoints();
+			int redChannel= Integer.parseInt(colors[currentColorIdx].substring(0,2),16);
+			int greenChannel= Integer.parseInt(colors[currentColorIdx].substring(2,4),16);
+			int blueChannel= Integer.parseInt(colors[currentColorIdx].substring(4,6),16);
+			for ( RealVector2Clusterable apw: points ) {
+				int i= apw.getX(), j= apw.getY();
+				assert 0 <= i && i < m;
+				assert 0 <= j && j < n;
+				for ( int ii= i*gridSize; ii < i*gridSize+gridSize; ++ii ) {
+					for ( int jj= j*gridSize; jj < j*gridSize+gridSize; ++jj ) {
+						p[0] = ii;
+						p[1] = jj;
+						p[2] = 0;
+						r.setPosition(p);
+						r.get().set(redChannel);
+						p[2] = 1;
+						r.setPosition(p);
+						r.get().set(greenChannel);
+						p[2] = 2;
+						r.setPosition(p);
+						r.get().set(blueChannel);
+						Color col = new Color(redChannel, greenChannel, blueChannel);
+						map.put(String.format("C%d: %.2f", currentColorIdx, 100.00 * points.size() / total), new Object[]{col, Double.valueOf(points.size() / total)});
+					}
+				}
+			}
+			++currentColorIdx;
+		}
+		//ImageJFunctions.show(img);
+        ImagePlus imp= ImageJFunctions.wrap(img,"result");
+		imp= new Duplicator().run(imp);
+		imp.show();
+		IJ.run("Stack to RGB", "");
+
+		//TODO: fix PieChart
+		//https://stackoverflow.com/questions/13166402/drawn-image-inside-panel-seems-to-have-wrong-x-y-offset
+		SwingUtilities.invokeLater(()-> {
+			ClusterSizePieChart pieChart= new ClusterSizePieChart("Clusterization",map);
+			pieChart.setSize(800, 400);
+			pieChart.setLocationRelativeTo(null);
+			pieChart.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+			pieChart.setVisible(true);
+		});
+	}
+
 	private void drawResult( List<? extends Cluster<AnnotatedPixelWrapper>> list ) {
     	//ImgFactory<UnsignedByteType> imgFactory= new ArrayImgFactory<>();
 		//Img<UnsignedByteType> img= imgFactory.create( new int[]{Utils.DEFAULT_SIZE,Utils.DEFAULT_SIZE,3}, new UnsignedByteType() );
@@ -335,7 +405,7 @@ public class GLCMClusteringFrame extends JFrame {
 		c.gridheight= 1;
 		c.fill= GridBagConstraints.HORIZONTAL;
 		c.anchor= GridBagConstraints.CENTER;
-		c.weightx= 0.5;
+		c.weightx= 0.33;
 		panel.add(clusterIt,c);
 
 		gridifyIt= new JButton("Gridify");
@@ -363,8 +433,42 @@ public class GLCMClusteringFrame extends JFrame {
 		c.gridheight= 1;
 		c.fill= GridBagConstraints.HORIZONTAL;
 		c.anchor= GridBagConstraints.CENTER;
-		c.weightx= 0.5;
+		c.weightx= 0.33;
 		panel.add(gridifyIt,c);
+
+		JButton wavelet = new JButton("Wavelet");
+		wavelet.addActionListener(
+				new ActionListener() {
+					@Override
+					public void actionPerformed(ActionEvent e) {
+					int k, numIters, trials;
+					try {
+						k = Integer.parseInt(formattedTextField.getText());
+						numIters = Integer.parseInt(formattedTextField2.getText());
+						trials = Integer.parseInt(formattedTextField3.getText());
+					} catch (NumberFormatException nfe) {
+						//throw nfe;
+						k = Utils.DEFAULT_NUMBER_OF_CLUSTERS;
+						numIters = Utils.DEFAULT_ITERS;
+						trials = Utils.NUM_TRIALS;
+					}
+					log.info("Read k= " + k);
+					selectDistanceMeasure();
+					getWindowSize();
+					selectResize();
+					selectGridSize();
+					multiKMeansPPClusteringWavelet(k, numIters, trials);
+				}
+		});
+		c= new GridBagConstraints();
+		c.gridx= 2;
+		c.gridy= 3;
+		c.gridwidth= 1;
+		c.gridheight= 1;
+		c.fill= GridBagConstraints.HORIZONTAL;
+		c.anchor= GridBagConstraints.CENTER;
+		c.weightx= 0.33;
+		panel.add(wavelet,c);
 
 		return panel;
 	}
@@ -604,7 +708,7 @@ public class GLCMClusteringFrame extends JFrame {
 		c.gridheight= 1;
 		c.fill= GridBagConstraints.HORIZONTAL;
 		c.anchor= GridBagConstraints.CENTER;
-		c.weightx= 0.5;
+		c.weightx= 0.33;
 		panel.add(clusterIt,c);
 
 		gridifyIt= new JButton("Gridify");
@@ -632,8 +736,37 @@ public class GLCMClusteringFrame extends JFrame {
 		c.gridheight= 1;
 		c.fill= GridBagConstraints.HORIZONTAL;
 		c.anchor= GridBagConstraints.CENTER;
-		c.weightx= 0.5;
+		c.weightx= 0.33;
 		panel.add(gridifyIt,c);
+
+		JButton wavelet = new JButton("Wavelet");
+		wavelet.addActionListener( new ActionListener() {
+			@Override
+			public void actionPerformed( ActionEvent e ) {
+				thread.run( ()-> {
+					try {
+						selectGridSize();
+					} catch ( NumberFormatException nfe ) {
+					    gridSize= Utils.DEFAULT_GRID_SIZE;
+					}
+					log.info("Grid size: "+gridSize);
+					//TODO:
+					//gridify();
+					//getWindowSize();
+					//selectResize();
+					//multiKMeansPPClustering(k,numIters,trials);
+				});
+			}
+		});
+		c= new GridBagConstraints();
+		c.gridx= 2;
+		c.gridy= 2;
+		c.gridwidth= 1;
+		c.gridheight= 1;
+		c.fill= GridBagConstraints.HORIZONTAL;
+		c.anchor= GridBagConstraints.CENTER;
+		c.weightx= 0.33;
+		panel.add(wavelet,c);
 
 		return panel;
 	}
@@ -741,7 +874,7 @@ public class GLCMClusteringFrame extends JFrame {
 		c.gridheight= 1;
 		c.fill= GridBagConstraints.HORIZONTAL;
 		c.anchor= GridBagConstraints.CENTER;
-		c.weightx= 0.5;
+		c.weightx= 0.33;
 		panel.add(clusterIt,c);
 
 		gridifyIt= new JButton("Gridify");
@@ -769,8 +902,37 @@ public class GLCMClusteringFrame extends JFrame {
 		c.gridheight= 1;
 		c.fill= GridBagConstraints.HORIZONTAL;
 		c.anchor= GridBagConstraints.CENTER;
-		c.weightx= 0.5;
+		c.weightx= 0.33;
 		panel.add(gridifyIt,c);
+
+		JButton wavelet = new JButton("Wavelet");
+		wavelet.addActionListener( new ActionListener() {
+			@Override
+			public void actionPerformed( ActionEvent e ) {
+				thread.run( ()-> {
+					try {
+						selectGridSize();
+					} catch ( NumberFormatException nfe ) {
+					    gridSize= Utils.DEFAULT_GRID_SIZE;
+					}
+					log.info("Grid size: "+gridSize);
+					//TODO:
+					//gridify();
+					//getWindowSize();
+					//selectResize();
+					//multiKMeansPPClusteringWavelet(k,numIters,trials);
+				});
+			}
+		});
+		c= new GridBagConstraints();
+		c.gridx= 2;
+		c.gridy= 3;
+		c.gridwidth= 1;
+		c.gridheight= 1;
+		c.fill= GridBagConstraints.HORIZONTAL;
+		c.anchor= GridBagConstraints.CENTER;
+		c.weightx= 0.33;
+		panel.add(wavelet,c);
 
 		return panel;
 	}
@@ -788,6 +950,30 @@ public class GLCMClusteringFrame extends JFrame {
             List<CentroidCluster<AnnotatedPixelWrapper>> list = clusterer.cluster();
             assert list != null: String.format("list is empty that came from cluster");
             drawResult(list);
+            log.info("[DONE Multi-KMeans Clustering]");
+        } catch ( Exception e ) {
+		    log.info(e.getCause());
+		    log.info(e.getMessage());
+		    e.printStackTrace();
+        }
+	}
+
+	public void multiKMeansPPClusteringWavelet( int k, int numIters, int trials ) {
+	    /*
+		RealRect r= overlayService.getSelectionBounds(display);
+		*/
+		//MultiKMeansPlusPlusImageClusterer clusterer= new MultiKMeansPlusPlusImageClusterer(flag,selectedRegion,k, numIters, trials,selectedDistance,windowSize);
+		log.info("inside multiKMeansPPClustering");
+		assert currentSelection != null: String.format("currentSelection is null");
+		HadamardTransform01 ht= new HadamardTransform01(currentSelection,gridSize);
+		MultiKMeansPlusPlusClusterer<RealVector2Clusterable> clusterer= new MultiKMeansPlusPlusClusterer<>(
+				new KMeansPlusPlusClusterer<>(k,numIters,selectedDistance),trials
+		);
+		log.info("[Launching Multi-KMeans Clustering]");
+		try {
+            List<CentroidCluster<RealVector2Clusterable>> list = clusterer.cluster(ht.transform());
+            assert list != null: String.format("list is empty that came from cluster");
+            drawResultWavelet(list);
             log.info("[DONE Multi-KMeans Clustering]");
         } catch ( Exception e ) {
 		    log.info(e.getCause());
