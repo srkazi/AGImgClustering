@@ -1,9 +1,10 @@
 import charts.ClusterSizePieChart;
 import concurrency.HadamardTransform01;
+import concurrency.JWaveImageTransform;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.plugin.Duplicator;
-import model.RealVector2Clusterable;
+import model.*;
 import net.imagej.DatasetService;
 import net.imagej.display.ImageDisplay;
 import net.imagej.display.OverlayService;
@@ -68,7 +69,6 @@ public class GLCMClusteringFrame extends JFrame {
 	public GLCMClusteringFrame() {
 		setBounds(100,100,300,300);
 		this.setTitle("Clustering");
-
 		/*
 		try {
 			UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel");
@@ -103,6 +103,7 @@ public class GLCMClusteringFrame extends JFrame {
     private Map<String,JRadioButtonMenuItem> str2windowsize= new HashMap<>();
 	private Map<String,JRadioButtonMenuItem> str2resize= new HashMap<>();
 	private Map<String,JRadioButtonMenuItem> str2grid= new HashMap<>();
+    private Map<String,JRadioButtonMenuItem> str2wavelet= new HashMap<>();
 
 	protected void makeMenuBar() {
 		bar= new JMenuBar();
@@ -189,6 +190,23 @@ public class GLCMClusteringFrame extends JFrame {
 			str2grid.put(x,item);
 		}
 		bar.add(gridMenu);
+
+		JMenu wvltMenu= new JMenu("Wavelets");
+		String []wvltTypes= {"Hadamard","Daubechies","Haar","Legendre","Discrete"};
+		mapStr2Wavelet= new HashMap<>();
+		mapStr2Wavelet.put(wvltTypes[0],HadamardTransform01.class);
+        mapStr2Wavelet.put(wvltTypes[1],JWaveDaubechies.class);
+        mapStr2Wavelet.put(wvltTypes[2],JWaveHaar.class);
+        mapStr2Wavelet.put(wvltTypes[3],JWaveLegendre.class);
+        mapStr2Wavelet.put(wvltTypes[4],Discrete.class);
+		ButtonGroup wvltButtonGroup= new ButtonGroup();
+		for ( String x: wvltTypes ) {
+			JRadioButtonMenuItem item = new JRadioButtonMenuItem(x);
+			wvltButtonGroup.add(item);
+			wvltMenu.add(item);
+			str2wavelet.put(x,item);
+		}
+		bar.add(wvltMenu);
 
 		this.setJMenuBar(bar);
 	}
@@ -457,6 +475,7 @@ public class GLCMClusteringFrame extends JFrame {
 					getWindowSize();
 					selectResize();
 					selectGridSize();
+					selectWhichTransform();
 					multiKMeansPPClusteringWavelet(k, numIters, trials);
 				}
 		});
@@ -473,7 +492,23 @@ public class GLCMClusteringFrame extends JFrame {
 		return panel;
 	}
 
-	private void gridify() {
+	private Map<String,Class> mapStr2Wavelet;
+	private Class selectedWavelet;
+
+    private void selectWhichTransform() {
+   		for ( Map.Entry<String,JRadioButtonMenuItem> entry: str2wavelet.entrySet() ) {
+            JRadioButtonMenuItem item= entry.getValue();
+            if ( item.isSelected() ) {
+                selectedWavelet= mapStr2Wavelet.get(entry.getKey());
+                log.info("Selected Wavelet: "+selectedWavelet.toString());
+                return ;
+            }
+        }
+        selectedWavelet= HadamardTransform01.class;
+        log.info("Selected default wavelet: "+selectedWavelet.toString());
+    }
+
+    private void gridify() {
 	    gridify2();
 	    return ;
 	    /*
@@ -758,6 +793,7 @@ public class GLCMClusteringFrame extends JFrame {
 				});
 			}
 		});
+		wavelet.setEnabled(false);
 		c= new GridBagConstraints();
 		c.gridx= 2;
 		c.gridy= 2;
@@ -924,6 +960,7 @@ public class GLCMClusteringFrame extends JFrame {
 				});
 			}
 		});
+		wavelet.setEnabled(false);
 		c= new GridBagConstraints();
 		c.gridx= 2;
 		c.gridy= 3;
@@ -965,14 +1002,20 @@ public class GLCMClusteringFrame extends JFrame {
 		//MultiKMeansPlusPlusImageClusterer clusterer= new MultiKMeansPlusPlusImageClusterer(flag,selectedRegion,k, numIters, trials,selectedDistance,windowSize);
 		log.info("inside multiKMeansPPClustering");
 		assert currentSelection != null: String.format("currentSelection is null");
-		HadamardTransform01 ht= new HadamardTransform01(currentSelection,gridSize);
+		MyTransformer ht= null;
+		if ( selectedWavelet.equals(HadamardTransform01.class) ) {
+            ht = new HadamardTransform01(currentSelection, gridSize);
+        }
+        else {
+		    ht= new JWaveImageTransform(img,gridSize,selectedWavelet);
+        }
 		MultiKMeansPlusPlusClusterer<RealVector2Clusterable> clusterer= new MultiKMeansPlusPlusClusterer<>(
 				new KMeansPlusPlusClusterer<>(k,numIters,selectedDistance),trials
 		);
 		log.info("[Launching Multi-KMeans Clustering]");
 		try {
             List<CentroidCluster<RealVector2Clusterable>> list = clusterer.cluster(ht.transform());
-            assert list != null: String.format("list is empty that came from cluster");
+            assert list != null: "list is empty that came from cluster";
             drawResultWavelet(list);
             log.info("[DONE Multi-KMeans Clustering]");
         } catch ( Exception e ) {

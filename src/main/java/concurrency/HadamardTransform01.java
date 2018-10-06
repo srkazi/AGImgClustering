@@ -1,47 +1,25 @@
 package concurrency;
 
 import kz.ag.HadamardMatrix;
+import model.MyTransformer;
 import model.RealVector2Clusterable;
+import model.TaggedVector;
 import net.imglib2.RandomAccess;
 import net.imglib2.RandomAccessibleInterval;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
 import org.apache.commons.math3.linear.Array2DRowRealMatrix;
-import org.apache.commons.math3.linear.ArrayRealVector;
 import org.apache.commons.math3.linear.RealMatrix;
-import org.apache.commons.math3.linear.RealVector;
-import org.apache.commons.math3.ml.clustering.Clusterable;
 
 import java.util.*;
 import java.util.concurrent.*;
 
-public class HadamardTransform01 {
+public class HadamardTransform01 extends MyTransformer {
 
     private RandomAccessibleInterval<UnsignedByteType> src;
     private long m,n,gridSize,K;
     private Executor executorService= Executors.newCachedThreadPool();
     private CompletionService<TaggedVector> ecs= new ExecutorCompletionService<>(executorService);
     private RealMatrix hadamardMatrix, thm;
-
-    public class TaggedVector extends ArrayRealVector {
-        private int x,y;
-
-        public TaggedVector(int size) {
-            super(size);
-        }
-
-        public int getX() {
-            return x;
-        }
-        public void setX(int x) {
-            this.x = x;
-        }
-        public int getY() {
-            return y;
-        }
-        public void setY(int y) {
-            this.y = y;
-        }
-    }
 
     public HadamardTransform01( final RandomAccessibleInterval<UnsignedByteType> img, final long gridSize ) {
         this.src= img;
