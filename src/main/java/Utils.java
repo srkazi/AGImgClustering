@@ -1,4 +1,7 @@
+import model.RealVector2Clusterable;
+
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 public class Utils {
@@ -10,7 +13,7 @@ public class Utils {
     public static final int DEFAULT_NUMBER_OF_CLUSTERS = 3;
     public static final int DEFAULT_ITERS = (1<<17);
     public static final int DEFAULT_MIN_TS = 3;
-    public static final int DEFAULT_SIZE = 0x400;
+    public static final int DEFAULT_SIZE = 0x200;
     public static final int DEFAULT_RESCALE_FACTOR = 1;
     public static final int DEFAULT_GRID_SIZE = 32;
 
@@ -84,5 +87,21 @@ public class Utils {
 
     public static int MASK( int logh ) {
         return (1<<logh)-1;
+    }
+
+    public static
+    List<RealVector2Clusterable> normalize( List<RealVector2Clusterable> pts ) {
+        for ( RealVector2Clusterable entry: pts ) {
+            double[] p= entry.getPoint();
+            double sum= 0;
+            for ( int i= 0; i < p.length; ++i )
+                sum+= p[i];
+            if ( Math.abs(sum) < 1e-9 ) {
+                throw new IllegalStateException("[dbscan normalization] all the components of a vector are zero");
+            }
+            for ( int i= 0; i < p.length; ++i )
+                entry.setComponent(i,p[i]/sum);
+        }
+        return pts;
     }
 }

@@ -19,4 +19,7 @@ public class RealVector2Clusterable implements Clusterable {
     public double[] getPoint() {
         return points;
     }
+    public void setComponent( int i, double val ) {
+        points[i]= val;
+    }
 }

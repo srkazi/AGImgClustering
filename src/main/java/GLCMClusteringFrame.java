@@ -20,10 +20,7 @@ import net.imglib2.type.numeric.IntegerType;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
 import net.imglib2.view.Views;
 import org.apache.commons.math3.linear.RealVector;
-import org.apache.commons.math3.ml.clustering.CentroidCluster;
-import org.apache.commons.math3.ml.clustering.Cluster;
-import org.apache.commons.math3.ml.clustering.KMeansPlusPlusClusterer;
-import org.apache.commons.math3.ml.clustering.MultiKMeansPlusPlusClusterer;
+import org.apache.commons.math3.ml.clustering.*;
 import org.apache.commons.math3.ml.distance.*;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.scijava.app.StatusService;
@@ -779,21 +776,27 @@ public class GLCMClusteringFrame extends JFrame {
 			@Override
 			public void actionPerformed( ActionEvent e ) {
 				thread.run( ()-> {
+					int minPts= 3;
+					double eps;
 					try {
-						selectGridSize();
+						minPts= Integer.parseInt(formattedTextField2.getText());
+						eps= Double.parseDouble(formattedTextField.getText());
 					} catch ( NumberFormatException nfe ) {
-					    gridSize= Utils.DEFAULT_GRID_SIZE;
+						//throw nfe;
+						eps= 1e-3;
+						minPts= Utils.DEFAULT_MIN_TS;
 					}
-					log.info("Grid size: "+gridSize);
-					//TODO:
-					//gridify();
-					//getWindowSize();
-					//selectResize();
-					//multiKMeansPPClustering(k,numIters,trials);
+					log.info("Read minPts= "+minPts);
+					selectDistanceMeasure();
+					getWindowSize();
+					selectResize();
+					selectGridSize();
+					selectWhichTransform();
+					dbscanClusteringWavelet(minPts,eps);
 				});
 			}
 		});
-		wavelet.setEnabled(false);
+		//wavelet.setEnabled(false);
 		c= new GridBagConstraints();
 		c.gridx= 2;
 		c.gridy= 2;
@@ -946,21 +949,28 @@ public class GLCMClusteringFrame extends JFrame {
 			@Override
 			public void actionPerformed( ActionEvent e ) {
 				thread.run( ()-> {
+					int k, iterations;
+					double fuzziness;
 					try {
-						selectGridSize();
+						k= Integer.parseInt(numberOfClusters.getText());
+						iterations= Integer.parseInt(textField2.getText());
+						fuzziness= Double.parseDouble(textField.getText());
 					} catch ( NumberFormatException nfe ) {
-					    gridSize= Utils.DEFAULT_GRID_SIZE;
+						//throw nfe;
+						fuzziness= Utils.DEFAULT_FUZZINESS;
+						k= Utils.DEFAULT_NUMBER_OF_CLUSTERS;
+						iterations= Utils.DEFAULT_ITERS;
 					}
-					log.info("Grid size: "+gridSize);
-					//TODO:
-					//gridify();
-					//getWindowSize();
-					//selectResize();
-					//multiKMeansPPClusteringWavelet(k,numIters,trials);
+					selectDistanceMeasure();
+					getWindowSize();
+					selectResize();
+					selectGridSize();
+					selectWhichTransform();
+					fuzzyKMeansClusteringWavelet(k,fuzziness,iterations);
 				});
 			}
 		});
-		wavelet.setEnabled(false);
+		//wavelet.setEnabled(false);
 		c= new GridBagConstraints();
 		c.gridx= 2;
 		c.gridy= 3;
@@ -1040,6 +1050,33 @@ public class GLCMClusteringFrame extends JFrame {
         }
 	}
 
+	public void dbscanClusteringWavelet( int minPts, double eps ) {
+	    /*
+		RealRect r= overlayService.getSelectionBounds(display);
+		*/
+		//MultiKMeansPlusPlusImageClusterer clusterer= new MultiKMeansPlusPlusImageClusterer(flag,selectedRegion,k, numIters, trials,selectedDistance,windowSize);
+		assert currentSelection != null: "currentSelection is null";
+		MyTransformer ht= null;
+		if ( selectedWavelet.equals(HadamardTransform01.class) ) {
+            ht = new HadamardTransform01(currentSelection, gridSize);
+        }
+        else {
+		    ht= new JWaveImageTransform(img,gridSize,selectedWavelet);
+        }
+		DBSCANClusterer<RealVector2Clusterable> clusterer= new DBSCANClusterer<>(eps,minPts,selectedDistance);
+		log.info("[Launching DBSCAN Clustering]");
+		try {
+            List<Cluster<RealVector2Clusterable>> list= clusterer.cluster(Utils.normalize(ht.transform()));
+            assert list != null: "list is empty that came from cluster";
+            drawResultWavelet(list);
+            log.info("[DONE DBSCAN Clustering]");
+        } catch ( Exception e ) {
+		    log.info(e.getCause());
+		    log.info(e.getMessage());
+		    e.printStackTrace();
+        }
+	}
+
 	private void fuzzyKMeansClustering( int k, double fuzziness, int numIterations ) {
 		//FuzzyKMeansImageClusterer clusterer= new FuzzyKMeansImageClusterer(flag,selectedRegion,k,fuzziness,numIterations,selectedDistance,windowSize);
 		log.info("[Entering the constructor of FuzzyKMeans Clustering]");
@@ -1051,6 +1088,33 @@ public class GLCMClusteringFrame extends JFrame {
             drawResult(list);
         } catch ( Exception e ) {
             log.info(e.getCause());
+		    log.info(e.getMessage());
+		    e.printStackTrace();
+        }
+	}
+
+	public void fuzzyKMeansClusteringWavelet( int k, double fuzziness, int numIters ) {
+	    /*
+		RealRect r= overlayService.getSelectionBounds(display);
+		*/
+		//MultiKMeansPlusPlusImageClusterer clusterer= new MultiKMeansPlusPlusImageClusterer(flag,selectedRegion,k, numIters, trials,selectedDistance,windowSize);
+		assert currentSelection != null: "currentSelection is null";
+		MyTransformer ht= null;
+		if ( selectedWavelet.equals(HadamardTransform01.class) ) {
+            ht = new HadamardTransform01(currentSelection, gridSize);
+        }
+        else {
+		    ht= new JWaveImageTransform(img,gridSize,selectedWavelet);
+        }
+		FuzzyKMeansClusterer<RealVector2Clusterable> clusterer= new FuzzyKMeansClusterer<>(k,fuzziness,numIters,selectedDistance);
+		log.info("[Launching FuzzyKMeans Clustering]");
+		try {
+            List<CentroidCluster<RealVector2Clusterable>> list = clusterer.cluster(ht.transform());
+            assert list != null: "list is empty that came from cluster";
+            drawResultWavelet(list);
+            log.info("[DONE FuzzyKMeans Clustering]");
+        } catch ( Exception e ) {
+		    log.info(e.getCause());
 		    log.info(e.getMessage());
 		    e.printStackTrace();
         }

@@ -123,7 +123,7 @@ public class ConcurrentPreprocessor implements HaralickImageProcessor {
     private DescriptiveStatistics statsPij= new DescriptiveStatistics();
     private int [][]g;
 
-    private static final int W= 8;
+    private static final int W= 64;
 
     public <T extends MatrixTraverser>
     ConcurrentPreprocessor( final RandomAccessibleInterval<Integer> img, Class<T> traverserImplClass ) {
